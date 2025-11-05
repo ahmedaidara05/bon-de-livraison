@@ -454,29 +454,33 @@
       doc.text('  ', pageWidth - rightMargin - 10, 168, {align:'right'});
       doc.text(' ', pageWidth - rightMargin - 10, 182, {align:'right'});
       
-      // Date en haut à gauche
-      if(dataObj.dateDevis) {
-        const date = new Date(dataObj.dateDevis);
-        const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        doc.setFontSize(11);
-        doc.setFont('helvetica','normal');
-        doc.text('Date: ' + formattedDate, leftMargin, 70);
-      }
-      
-      // Titre
-      doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.text('BON DE LIVRAISON '+(dataObj.numDevis||''), leftMargin, 90);
-      
-      // Informations client
-      doc.setFontSize(14); doc.setFont('helvetica','normal');
-      doc.text('Nom: ' + (dataObj.nom||''), leftMargin, 110);
-      doc.text('Matricule: ' + (dataObj.matricule||''), leftMargin, 125);
-      
-      // Service (si rempli)
-      if(dataObj.service) {
-        doc.setFont('helvetica','bold');
-        doc.text('Service: ' + dataObj.service, leftMargin, 145);
-        doc.setFont('helvetica','normal');
-      }
+    // Date en haut à gauche
+if(dataObj.dateDevis) {
+  const date = new Date(dataObj.dateDevis);
+  const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  doc.setFontSize(11);
+  doc.setFont('helvetica','normal');
+  doc.text('Date: ' + formattedDate, leftMargin, 70);
+}
+
+// Titre (descendu pour créer l’espace après la date)
+doc.setFontSize(16);
+doc.setFont('helvetica','bold');
+doc.text('BON DE LIVRAISON ' + (dataObj.numDevis || ''), leftMargin, 105);
+
+// Informations client (espacé calmement)
+doc.setFontSize(14);
+doc.setFont('helvetica','normal');
+doc.text('Nom: ' + (dataObj.nom || ''), leftMargin, 130);
+doc.text('Matricule: ' + (dataObj.matricule || ''), leftMargin, 145);
+
+// Service (descendu pour ajouter un espace visuel)
+if(dataObj.service) {
+  doc.setFont('helvetica','bold');
+  doc.text('Service: ' + dataObj.service, leftMargin, 170);
+  doc.setFont('helvetica','normal');
+}
+
 
       // Items table
       const startY = 240;
@@ -552,7 +556,7 @@ doc.addImage(
 
       // Infos entreprise en bas centré
       const footerText = "Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com/CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320";
-      doc.setFontSize(7);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'italic');
       
       // Diviser le texte en deux parties
