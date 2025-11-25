@@ -361,7 +361,10 @@
           <label>Service</label>
           <input type="text" id="service" placeholder=" ">
         </div>
-
+<div style="margin-top:12px">
+  <label> </label>
+  <input type="text" id="nomClient" placeholder="NE RIEN ECRIRE ICI">
+</div>
         <div class="table-wrap">
           <table id="itemsTable">
             <thead>
@@ -512,11 +515,12 @@ if(dataObj.service) {
       const signatureY = finalY + 30;
       
       // Client à gauche
-      doc.setFontSize(12);
-      doc.text('Le Client', leftMargin, signatureY);
-      doc.setFontSize(10);
-      doc.text('', leftMargin, signatureY + 40);
+doc.setFontSize(12);
       
+doc.text(' ', leftMargin, signatureY);
+doc.setFontSize(19);
+doc.text('  ' + (dataObj.nomClient || ''), leftMargin, signatureY + 20); // ← NOM AJOUTÉ ICI
+doc.text('', leftMargin, signatureY + 40);
       // Garagiste à droite
       doc.setFontSize(12);
       doc.text('Le Garagiste', pageWidth - rightMargin - 50, signatureY, {align: 'right'});
@@ -576,14 +580,15 @@ doc.addImage(
       await generatePDF(data);
     });
  
-   function collectForm(){
+ function collectForm(){
   const nom = $('nomClient').value;
   const matricule = $('matricule').value;
   const numDevis = $('numDevis').value || '';
   const dateDevis = $('dateDevis').value;
   const service = $('service').value;
+  const nomClient = $('nomClient').value; // ← AJOUTEZ CETTE LIGNE
   const items = [...tbody.querySelectorAll('tr')].map(r=>({des:r.querySelector('.des').value, qty:Number(r.querySelector('.qty').value)||0})).filter(i=>i.des||i.qty);
-  return {nom,matricule,numDevis,dateDevis,service,items};
+  return {nom,matricule,numDevis,dateDevis,service,nomClient,items}; // ← AJOUTEZ nomClient ici
 }
 
     // Save devis to localStorage list
