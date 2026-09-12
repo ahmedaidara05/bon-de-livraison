@@ -1,684 +1,878 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Générateur de Bon de Livraison — ETS NIASS & FRÈRE</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#f6fbff;--blue1:#0f4ac8;--blue2:#1a67ff;--muted:#666}
-    *{box-sizing:border-box;font-family:'Inter',system-ui,Segoe UI,Roboto,Arial}
-    body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:#102a43}
-    .container{max-width:1100px;margin:28px auto;padding:24px}
-    header{position:relative;background:white;padding:22px;border-radius:16px;overflow:visible;box-shadow:0 6px 30px rgba(12,40,120,0.08)}
-    /* curved blues */
-    header::before, header::after{content:"";position:absolute;border-radius:50%;z-index:0}
-    header::before{width:420px;height:300px;background:radial-gradient(circle at 20% 20%,var(--blue1),transparent 40%);left:-120px;top:40px;transform:rotate(-20deg);opacity:0.95}
-    header::after{width:360px;height:220px;background:radial-gradient(circle at 80% 80%,var(--blue2),transparent 40%);right:-80px;bottom:0;transform:rotate(10deg);opacity:0.95}
-    .header-inner{position:relative;z-index:2;display:flex;gap:20px}
-    .logo{margin-left:auto}
-    .logo img{width:120px;height:120px;object-fit:cover;border-radius:0;display:block}
-    .company-info{position:absolute;right:20px;top:20px;text-align:right;max-width:320px}
-    .company-info strong{display:block}
-
-    form{margin-top:8px;display:grid;grid-template-columns:1fr 360px;gap:18px;position:relative;z-index:2}
-    .left{background:#fff;padding:18px;border-radius:12px}
-    .right{background:#fff;padding:18px;border-radius:12px;height:100%}
-
-    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
-    input[type=text],input[type=number],select,textarea{width:100%;padding:10px;border:1px solid #e5eefc;border-radius:8px;font-size:15px}
-    input[readonly]{background:#f3f7fd;color:#0f4ac8;font-weight:600}
-    .radio-group{display:flex;gap:12px;align-items:center}
-    .small{font-size:13px;color:var(--muted)}
-
-    .table-wrap{margin-top:12px;overflow:auto}
-    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5eefc}
-    th,td{padding:10px;border-bottom:1px solid #eef4ff;text-align:left}
-    th{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:white;font-weight:600}
-    .actions{display:flex;gap:8px}
-    .btn{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;border:0;cursor:pointer}
-    .btn-primary{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:white}
-    .btn-ghost{background:transparent;border:1px solid #dbeafe;color:var(--blue1)}
-
-    .bottom{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-    .devis-list{margin-top:18px;background:#fff;padding:12px;border-radius:12px}
-    .devis-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #f1f7ff}
-    .muted{color:var(--muted)}
-
-    footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-
-    /* responsive */
-    @media(max-width:980px){form{grid-template-columns:1fr} .company-info{position:static;text-align:left;margin-top:12px}}
-    .devis-date-header {
-    position: absolute;
-    top: 110px;
-    left: 20px;
-    z-index: 3;
-    color: white;
-    font-size: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-}
-    @media (max-width: 640px) {
-    .company-info {
-        max-width: 55%;
-        font-size: 10px;
-    }
-    
-    .company-name {
-        font-size: 14px;
-    }
-    
-    .devis-info {
-        top: 150px;
-        right: 10px;
-        font-size: 10px;
-        padding: 8px;
-    }
-    
-    .devis-number {
-        font-size: 14px;
-    }
-    
-    .client-info {
-        margin-top: 80px;
-        margin-left: 10px;
-        margin-right: 10px;
-        padding: 10px;
-    }
-    
-    .container {
-        padding-left: 10px;
-        padding-right: 10px;
-    }
-    
-    .logo-container {
-        width: 80px;
-        height: 80px;
-        top: 15px;
-        right: 15px;
-    }
-    
-    .devis-date-header {
-        top: 100px;
-        font-size: 10px;
-    }
-    
-    /* Ajustements pour les tableaux */
-    .table-container {
-        overflow-x: auto;
-        font-size: 12px;
-    }
-    
-    table {
-        font-size: 12px;
-    }
-    
-    th, td {
-        padding: 4px 8px;
-    }
-    
-    /* Ajustements pour les formulaires */
-    input, select {
-        font-size: 14px; /* Évite le zoom sur iOS */
-    }
-}
-    /* ===== CORRECTION DU DÉFILEMENT HORIZONTAL ===== */
-@media (max-width: 768px) {
-  body, html {
-    overflow-x: hidden;
-    width: 100%;
-    position: relative;
-  }
-  
-  .container {
-    width: 100%;
-    max-width: 100%;
-    padding: 10px;
-    margin: 0;
-    box-sizing: border-box;
-  }
-  
-  header {
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .header-inner {
-    flex-direction: column;
-    width: 100%;
-  }
-  
-  form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .left, .right {
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  /* Correction spécifique pour les éléments qui dépassent */
-  .logo {
-    max-width: 100%;
-  }
-  
-  .logo img {
-    max-width: 100%;
-    height: auto;
-  }
-  
-  /* Forcer le tableau à s'adapter */
-  .table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  table {
-    width: 100%;
-    min-width: 100%;
-    table-layout: fixed;
-  }
-  
-  th, td {
-    word-wrap: break-word;
-  }
-  
-  /* Ajustements des inputs */
-  input[type="text"], 
-  input[type="number"], 
-  select, 
-  textarea {
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-  
-  /* Correction des flexbox qui dépassent */
-  .left > div[style*="display:flex"] {
-    flex-wrap: wrap;
-    width: 100%;
-  }
-  
-  .left > div[style*="display:grid"] {
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-  
-  /* Elements absolus qui pourraient dépasser */
-  .company-info {
-    position: relative;
-    width: 100%;
-    text-align: center;
-    margin-top: 10px;
-  }
-  
-  .devis-date-header {
-    position: relative;
-    top: 0;
-    left: 0;
-    margin: 10px 0;
-    width: 100%;
-    text-align: center;
-  }
-}
-
-/* Correction supplémentaire pour très petits écrans */
-@media (max-width: 480px) {
-  table {
-    font-size: 12px;
-  }
-  
-  th, td {
-    padding: 6px 4px;
-  }
-  
-  .btn {
-    padding: 10px;
-    font-size: 13px;
-  }
-  
-  input[type="text"], 
-  input[type="number"], 
-  select, 
-  textarea {
-    font-size: 14px;
-    padding: 10px;
-  }
-}
-
-/* Styles pour le tableau simplifié */
-#itemsTable th:nth-child(1),
-#itemsTable td:nth-child(1) {
-  width: 80%;
-}
-
-#itemsTable th:nth-child(2),
-#itemsTable td:nth-child(2) {
-  width: 20%;
-}
-
-/* Style pour le texte service */
-.service-text {
-  margin: 15px 0 10px 0;
-  font-weight: 600;
-}
-
-.service-text.underline {
-  text-decoration: underline;
-}
-
-/* Style pour la signature */
-.signature-section {
-  margin-top: 20px;
-  display: flex;
-  justify-content: space-between;
-  padding-top: 10px;
-  border-top: 1px solid #e5eefc;
-}
-
-.signature-box {
-  text-align: center;
-  width: 45%;
-}
-
-.signature-line {
-  margin-top: 40px;
-  border-top: 1px solid #000;
-  width: 100%;
-}
-
-/* Style pour les informations de contact */
-.contact-info {
-  font-size: 8px;
-  text-align: center;
-  margin-top: 10px;
-  line-height: 1.2;
-}
-
-.contact-info span {
-  display: inline-block;
-  margin: 0 5px;
-}
-
-/* Style pour le tampon */
-.tampon {
-  margin-top: 10px;
-  text-align: center;
-}
-
-.tampon img {
-  max-width: 120px;
-  height: auto;
-}
-
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ETS NIASS & FRÈRE — Gestion</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root{--bg:#f6fbff;--blue1:#0f4ac8;--blue2:#1a67ff;--muted:#666}
+  *{box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#fff);color:#102a43}
+  .tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;align-items:center;background:#fff;padding:10px 16px;box-shadow:0 2px 10px rgba(12,40,120,0.08);overflow-x:auto}
+  .tab-btn{border:0;background:#eef4ff;color:var(--blue1);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .tab-btn.active{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff}
+  .status{font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap}
+  .panel{display:none;max-width:1100px;margin:20px auto;padding:0 16px 40px}
+  .panel.active{display:block}
+  .card{background:#fff;padding:18px;border-radius:12px;box-shadow:0 6px 20px rgba(12,40,120,0.06)}
+  h1.page-title{font-size:20px;margin:16px 0}
+  h3{margin-top:18px}
+  label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+  input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:10px;border:1px solid #e5eefc;border-radius:8px;font-size:15px}
+  input[readonly]{background:#f3f7fd;color:#0f4ac8;font-weight:600}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5eefc;margin-top:10px}
+  th,td{padding:10px;border-bottom:1px solid #eef4ff;text-align:left}
+  th{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff;font-weight:600}
+  .btn{display:inline-flex;gap:8px;align-items:center;padding:9px 14px;border-radius:10px;border:0;cursor:pointer;font-size:14px}
+  .btn-primary{background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff}
+  .btn-ghost{background:transparent;border:1px solid #dbeafe;color:var(--blue1)}
+  .muted{color:var(--muted)}
+  .small{font-size:13px;color:var(--muted)}
+  .list-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid #f1f7ff;gap:10px}
+  .list-item .actions{display:flex;gap:6px;flex-shrink:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .number-badge{padding:10px;background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff;border-radius:8px;font-weight:700;text-align:center}
+  .total-line{font-weight:700;text-align:right;margin-top:10px}
+  @media(max-width:700px){.grid2{grid-template-columns:1fr} .card{grid-template-columns:1fr !important}}
+</style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <div class="header-inner">
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-target="panel-bl" type="button">📦 Bon de livraison</button>
+  <button class="tab-btn" data-target="panel-devis" type="button">🧾 Devis</button>
+  <button class="tab-btn" data-target="panel-facture" type="button">🧮 Facture</button>
+  <span class="status" id="fbStatus">Connexion à Firebase…</span>
+</nav>
+
+<!-- ============ PANEL BON DE LIVRAISON ============ -->
+<section id="panel-bl" class="panel active">
+  <h1 class="page-title">Bon de livraison — ETS NIASS & FRÈRE</h1>
+  <div class="card" style="display:grid;grid-template-columns:1fr 360px;gap:18px">
+    <div>
+      <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div style="min-width:200px">
+          <label>Numéro (automatique)</label>
+          <input type="text" id="bl-num" readonly>
+        </div>
+        <div style="min-width:200px">
+          <label>Date</label>
+          <input type="date" id="bl-date">
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><label>Nom</label><input type="text" id="bl-nom"></div>
+        <div><label>Matricule</label><input type="text" id="bl-matricule"></div>
+      </div>
+      <div style="margin-top:12px"><label>Service</label><input type="text" id="bl-service"></div>
+      <table id="bl-table">
+        <thead><tr><th>Désignation</th><th>Quantité</th><th></th></tr></thead>
+        <tbody id="bl-tbody"></tbody>
+      </table>
+      <div style="margin-top:10px"><button type="button" class="btn btn-ghost" id="bl-addRow">➕ Ajouter une ligne</button></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary" id="bl-generatePdf">Générer</button>
+        <button type="button" class="btn" id="bl-save">Sauvegarder</button>
+        <button type="button" class="btn" id="bl-clear">Nouveau</button>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Bons de livraison</h3>
+      <div id="bl-list"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PANEL DEVIS ============ -->
+<section id="panel-devis" class="panel">
+  <h1 class="page-title">Devis sans TVA — ETS NIASS & FRÈRE</h1>
+  <div class="card" style="display:grid;grid-template-columns:1fr 360px;gap:18px">
+    <div>
+      <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
         <div>
-          <h1 style="margin:0;font-size:20px">BON DE LIVRAISON</h1>
-         </div>
-        <div class="logo" title="Logo">
-          <img src="https://i.postimg.cc/wxRckfnt/3.png" alt="logo">
+          <label>Type</label>
+          <label style="display:inline-flex;gap:4px;font-weight:400"><input type="radio" name="dv-type" value="Client" checked> Client</label>
+          <label style="display:inline-flex;gap:4px;font-weight:400;margin-left:10px"><input type="radio" name="dv-type" value="Entreprise"> Entreprise</label>
         </div>
+        <div style="min-width:180px"><label>Numéro</label><div class="number-badge" id="dv-num">Chargement...</div></div>
+        <div style="min-width:180px"><label>Date</label><input type="date" id="dv-date"></div>
       </div>
-
-     
-
-    </header>
-
-    <form id="devisForm">
-      <div class="left">
-       <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
-  <div style="min-width:200px">
-    <label>Numéro BON DE LIVRAISON (automatique)</label>
-    <input type="text" id="numDevis" readonly>
-  </div>
-  <div style="min-width:200px">
-    <label>Date </label>
-    <input type="date" id="dateDevis">
-  </div>
-</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-          <div>
-            <label>Nom</label>
-            <input type="text" id="nomClient" placeholder=" ">
-          </div>
-          <div>
-            <label>Matricule</label>
-            <input type="text" id="matricule" placeholder=" ">
-          </div>
-        </div>
-
-        <div style="margin-top:12px">
-          <label>Service</label>
-          <input type="text" id="service" placeholder=" ">
-        </div>
-
-        <div class="table-wrap">
-          <table id="itemsTable">
-            <thead>
-              <tr><th>Désignation</th><th>Quantité</th><th></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-          <button type="button" class="btn btn-ghost" id="addRow">➕ Ajouter une ligne</button>
-          <div class="muted" style="margin-left:auto"> </div>
-        </div>
-
-        <div style="margin-top:12px;display:flex;gap:8px">
-          <button type="button" class="btn btn-primary" id="generatePdf">Générer</button>
-          <button type="button" class="btn" id="saveDevis"> Sauvegarder</button>
-          <button type="button" class="btn" id="clearForm">Effacer</button>
-        </div>
+      <div class="grid2" style="margin-top:10px">
+        <div><label>Nom</label><input type="text" id="dv-nom"></div>
+        <div><label>Téléphone</label><input type="text" id="dv-tel"></div>
       </div>
-
-      <div class="right">
-        <h3 style="margin-top:0">Liste des Bons de Livraison</h3>
-        <div class="devis-list" id="devisList"></div>
-       
+      <div class="grid2" style="margin-top:10px">
+        <div><label>Marque</label><input type="text" id="dv-marque"></div>
+        <div><label>Matricule</label><input type="text" id="dv-matricule"></div>
       </div>
-    </form>
-
-    <footer> ETS NIASS & FRÈRE</footer>
+      <div style="margin-top:12px"><label>Description des travaux</label><textarea id="dv-travail" rows="2"></textarea></div>
+      <table id="dv-table">
+        <thead><tr><th>Désignation</th><th>Quantité</th><th>Prix unitaire</th><th>Montant</th><th></th></tr></thead>
+        <tbody id="dv-tbody"></tbody>
+      </table>
+      <div style="margin-top:10px"><button type="button" class="btn btn-ghost" id="dv-addRow">➕ Ajouter une ligne</button></div>
+      <div class="total-line">Total: <span id="dv-total">0</span> FCFA</div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn btn-primary" id="dv-generatePdf">Générer PDF</button>
+        <button type="button" class="btn" id="dv-save">Sauvegarder</button>
+        <button type="button" class="btn" id="dv-clear">Nouveau Devis</button>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-top:0">Devis</h3>
+      <div id="dv-list"></div>
+    </div>
   </div>
+</section>
 
-  <!-- Librairies JS pour PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<!-- ============ PANEL FACTURE ============ -->
+<section id="panel-facture" class="panel">
+  <h1 class="page-title">Facture — ETS NIASS & FRÈRE</h1>
+  <div class="card">
+    <div class="grid2">
+      <div><label>Numéro de Facture (automatique)</label><input type="text" id="fa-num" readonly></div>
+      <div><label>Date</label><input type="date" id="fa-date"></div>
+    </div>
+    <div style="margin-top:10px"><label>Taux TVA (%)</label><input type="number" id="fa-tva" value="18" min="0" max="100" step="0.1"></div>
 
-  <script>
-    // Utils
-    const $ = id => document.getElementById(id);
-    const qs = sel => document.querySelector(sel);
+    <h3>Client</h3>
+    <div class="grid2">
+      <div><label>Nom du client</label><input type="text" id="fa-nom"></div>
+      <div><label>Téléphone</label><input type="text" id="fa-tel"></div>
+    </div>
+    <div class="grid2" style="margin-top:10px">
+      <div><label>Adresse</label><input type="text" id="fa-adresse"></div>
+      <div><label>Email</label><input type="text" id="fa-email"></div>
+    </div>
 
-    // ===== Numérotation automatique du bon de livraison =====
-    function getStoredCounter(){
-      return parseInt(localStorage.getItem('bl_counter') || '0', 10);
-    }
-    function formatNum(n){
-      return 'BL-' + String(n).padStart(4, '0');
-    }
-    // Affiche le prochain numéro disponible SANS le consommer
-    function peekNextNum(){
-      return formatNum(getStoredCounter() + 1);
-    }
-    // Consomme le numéro (à appeler uniquement à la sauvegarde d'un NOUVEAU bon)
-    function commitNextNum(){
-      const n = getStoredCounter() + 1;
-      localStorage.setItem('bl_counter', String(n));
-      return formatNum(n);
-    }
+    <h3>Produits</h3>
+    <table id="fa-table">
+      <thead><tr><th>Nom produit</th><th>Quantité</th><th>Prix unitaire</th><th>Total</th><th></th></tr></thead>
+      <tbody id="fa-tbody"></tbody>
+    </table>
+    <div style="margin-top:10px"><button type="button" class="btn btn-ghost" id="fa-addRow">➕ Ajouter un produit</button></div>
 
-    // Table management
-    const tbody = document.querySelector('#itemsTable tbody');
-    function addRow(data={designation:'',qty:1}){
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><input class='inp des' value="${escapeHtml(data.designation)}" placeholder='Désignation'></td>
-        <td><input class='inp qty' type='number' min='0' value='${data.qty}'></td>
-        <td><button class='btn btn-ghost btn-sm del'>Suppr</button></td>
-      `;
-      tbody.appendChild(tr);
-      hookRow(tr);
-    }
+    <div class="total-line">Sous-total: <span id="fa-subtotal">0</span> FCFA</div>
+    <div class="total-line" id="fa-tvaLine">TVA (18%): <span id="fa-tvaAmount">0</span> FCFA</div>
+    <div class="total-line">Total TTC: <span id="fa-totalttc">0</span> FCFA</div>
+    <div id="fa-lettres" class="small" style="margin-top:8px;padding:8px;background:#f8f9fa;border-left:4px solid var(--blue1);font-style:italic"></div>
 
-    function escapeHtml(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" id="fa-generate">Générer la facture (PDF)</button>
+      <button type="button" class="btn" id="fa-clear">Nouvelle facture</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3 style="margin-top:0">Factures</h3>
+    <div id="fa-list"></div>
+  </div>
+</section>
 
-    function hookRow(tr){
-      const qty = tr.querySelector('.qty');
-      const des = tr.querySelector('.des');
-      const del = tr.querySelector('.del');
-      function update(){
-        // Pas de calculs nécessaires pour le bon de livraison
-      }
-      qty.addEventListener('input', update);
-      des.addEventListener('input', ()=>{});
-      del.addEventListener('click', ()=>{ tr.remove(); });
-    }
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, doc, getDoc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-    // Events
-    document.getElementById('addRow').addEventListener('click', ()=>addRow());
-    
-    document.getElementById('clearForm').addEventListener('click', ()=>{
-      if(confirm('Réinitialiser le formulaire ?')){
-        document.getElementById('devisForm').reset();
-        tbody.innerHTML='';
-        addRow();
-        $('numDevis').value = peekNextNum();
-        const today = new Date();
-        $('dateDevis').value = today.toISOString().substr(0,10);
-      }
-    });
+const firebaseConfig = {
+  apiKey: "AIzaSyBj-m4WJnyyc1tLE7ZMD1HlLh_RPBDqdxY",
+  authDomain: "etsniass.firebaseapp.com",
+  projectId: "etsniass",
+  storageBucket: "etsniass.firebasestorage.app",
+  messagingSenderId: "513951905359",
+  appId: "1:513951905359:web:5da1b7f22ea5a54e511c3a",
+  measurementId: "G-DHZ8PBVBC7"
+};
 
-    // Charge une image de façon "sûre" : ne bloque jamais la génération du PDF
-    // même si l'image ne charge pas (CORS, lien mort, etc.)
-    function loadImageSafe(url){
-      return new Promise((resolve)=>{
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
-        img.src = url;
-      });
-    }
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    // PDF generation with jsPDF + autotable
-    async function generatePDF(dataObj){
-      try{
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({unit:'pt',format:'a4'});
-        const leftMargin = 40; const rightMargin = 40; const pageWidth = doc.internal.pageSize.getWidth();
+// Analytics est optionnel : si le navigateur le bloque, l'appli continue normalement
+import("https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js")
+  .then(async ({ getAnalytics, isSupported }) => {
+    if (await isSupported()) getAnalytics(app);
+  }).catch(()=>{ /* analytics indisponible, sans impact sur l'appli */ });
 
-        // Header: logo agrandi en haut à droite (les erreurs de chargement n'empêchent plus le PDF)
-        const logoSize = 190; // logo agrandi (était 130)
-        const img = await loadImageSafe('https://i.postimg.cc/85RsLkrb/LOGO.png');
-        if(img && img.naturalWidth > 0){
-          try{
-            doc.addImage(img, 'PNG', pageWidth - rightMargin - logoSize, 30, logoSize, logoSize);
-          }catch(e){
-            console.warn('Logo non inséré dans le PDF :', e);
-          }
-        }
+const $ = id => document.getElementById(id);
+const escapeHtml = str => String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-        // Date en haut à gauche
-        if(dataObj.dateDevis) {
-          const date = new Date(dataObj.dateDevis);
-          const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-          doc.setFontSize(11);
-          doc.setFont('helvetica','normal');
-          doc.text('Date: ' + formattedDate, leftMargin, 70);
-        }
+// Vérification réelle de la connexion Firebase (pas une simple temporisation)
+const fbStatus = $('fbStatus');
+getDoc(doc(db,'counters','bl')).then(()=>{
+  fbStatus.textContent = 'Firebase connecté ✔️';
+}).catch((e)=>{
+  fbStatus.textContent = 'Erreur de connexion Firebase ⚠️';
+  console.error('Firebase indisponible :', e);
+});
 
-        // Titre
-        doc.setFontSize(16);
-        doc.setFont('helvetica','bold');
-        doc.text('BON DE LIVRAISON ' + (dataObj.numDevis || ''), leftMargin, 105);
-
-        // Informations client
-        doc.setFontSize(14);
-        doc.setFont('helvetica','normal');
-        doc.text('Nom: ' + (dataObj.nom || ''), leftMargin, 130);
-        doc.text('Matricule: ' + (dataObj.matricule || ''), leftMargin, 145);
-
-        // Service
-        if(dataObj.service) {
-          doc.setFont('helvetica','bold');
-          doc.text('Service: ' + dataObj.service, leftMargin, 170);
-          doc.setFont('helvetica','normal');
-        }
-
-        // Items table
-        const startY = 240;
-        doc.autoTable({
-          startY,
-          head:[['Désignation','Quantité']],
-          body: dataObj.items.map(it=>[it.des, it.qty]),
-          styles:{fontSize:13},
-          theme:'striped',
-          headStyles:{fillColor:[15,74,200]},
-          margin:{left:leftMargin,right:rightMargin},
-          columnStyles: {
-            0: { cellWidth: 'auto' },
-            1: { cellWidth: 100, halign: 'center' }
-          }
-        });
-
-        // Ligne de séparation
-        const finalY = doc.lastAutoTable.finalY + 20;
-        doc.setDrawColor(0);
-        doc.setLineWidth(0.5);
-        doc.line(leftMargin, finalY, pageWidth - rightMargin, finalY);
-
-        // Section de signature
-        const signatureY = finalY + 30;
-
-        // Client à gauche
-        doc.setFontSize(12);
-        doc.text(' ', leftMargin, signatureY);
-        doc.setFontSize(19);
-        doc.text('  ' + (dataObj.nomClient || ''), leftMargin, signatureY + 20);
-        doc.text('', leftMargin, signatureY + 40);
-
-        // Garagiste à droite
-        doc.setFontSize(12);
-        doc.text('Le Garagiste', pageWidth - rightMargin - 50, signatureY, {align: 'right'});
-        doc.setFontSize(10);
-        doc.text('', pageWidth - rightMargin - 50, signatureY + 40, {align: 'right'});
-
-        // Tampon sous le garagiste (même logique sûre que le logo)
-        const tamponImg = await loadImageSafe('https://i.postimg.cc/PJhQ4P0f/LOCATION-VENTEDEVEHICULES-PIECESDERECHANGE-REPARATION-2.png');
-        if(tamponImg && tamponImg.naturalWidth > 0){
-          try{
-            const newWidth = 170;
-            const ratio = tamponImg.naturalHeight / tamponImg.naturalWidth;
-            const newHeight = newWidth * ratio;
-            doc.addImage(
-              tamponImg,
-              'PNG',
-              pageWidth - rightMargin - newWidth - 10,
-              signatureY + 40,
-              newWidth,
-              newHeight
-            );
-          }catch(e){
-            console.warn('Tampon non inséré dans le PDF :', e);
-          }
-        }
-
-        // Infos entreprise en bas centré
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'italic');
-        const firstPart = "Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com";
-        const secondPart = "CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320";
-        doc.text(firstPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 40, { align: 'center' });
-        doc.text(secondPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 30, { align: 'center' });
-
-        // Save / open
-        doc.save((dataObj.numDevis||'bon-de-livraison') + '.pdf');
-      }catch(err){
-        console.error('Erreur génération PDF :', err);
-        alert("Le PDF n'a pas pu être généré. Détail technique dans la console (F12).");
-      }
-    }
-
-    // Build data and call generate
-    document.getElementById('generatePdf').addEventListener('click', async ()=>{
-      const data = collectForm();
-      await generatePDF(data);
-    });
- 
- function collectForm(){
-  const nom = $('nomClient').value;
-  const matricule = $('matricule').value;
-  const numDevis = $('numDevis').value || '';
-  const dateDevis = $('dateDevis').value;
-  const service = $('service').value;
-  const nomClient = $('nomClient').value;
-  const items = [...tbody.querySelectorAll('tr')].map(r=>({des:r.querySelector('.des').value, qty:Number(r.querySelector('.qty').value)||0})).filter(i=>i.des||i.qty);
-  return {nom,matricule,numDevis,dateDevis,service,nomClient,items};
+function loadImageSafe(url){
+  return new Promise((resolve)=>{
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
 }
 
-    // Save devis to localStorage list
-    function loadDevisList(){
-      const raw = localStorage.getItem('devis_list');
-      return raw? JSON.parse(raw):[];
-    }
-    function saveDevisList(list){ localStorage.setItem('devis_list', JSON.stringify(list)); renderDevisList(); }
+async function peekNumber(counterId){
+  try{
+    const snap = await getDoc(doc(db,'counters',counterId));
+    return (snap.exists() ? (snap.data().value||0) : 0) + 1;
+  }catch(e){
+    console.warn('Lecture du compteur impossible, valeur par défaut utilisée', e);
+    return 1;
+  }
+}
+async function commitNumber(counterId){
+  return await runTransaction(db, async (tx)=>{
+    const ref = doc(db,'counters',counterId);
+    const snap = await tx.get(ref);
+    const current = snap.exists() ? (snap.data().value||0) : 0;
+    const next = current + 1;
+    tx.set(ref, { value: next }, { merge:true });
+    return next;
+  });
+}
 
-    function renderDevisList(){
-      const container = $('devisList'); container.innerHTML='';
-      const list = loadDevisList();
-      if(!list.length){ container.innerHTML='<div class="muted">Aucun bon de livraison enregistré — commencez par remplir le formulaire et cliquez sur « Sauvegarder »</div>'; return; }
-      list.forEach((d,idx)=>{
-        const el = document.createElement('div'); el.className='devis-item';
-        el.innerHTML = `<div><strong>${escapeHtml(d.numDevis)}</strong> — ${escapeHtml(d.nom||'—')}</div>
-          <div class='actions'>
-            <button type="button" class='btn' data-action='edit' data-idx='${idx}'>✏️</button>
-            <button type="button" class='btn' data-action='pdf' data-idx='${idx}'>📄</button>
-            <button type="button" class='btn' data-action='delete' data-idx='${idx}'>🗑️</button>
-          </div>`;
-        container.appendChild(el);
-      });
-      container.querySelectorAll('button').forEach(b=>b.addEventListener('click', e=>{
-        const act = b.getAttribute('data-action'); const i = Number(b.getAttribute('data-idx'));
-        const list = loadDevisList();
-        if(act==='delete'){ if(confirm('Supprimer ce bon de livraison ?')){ list.splice(i,1); saveDevisList(list); } }
-        if(act==='edit'){ populateForm(list[i]); }
-        if(act==='pdf'){ generatePDF(list[i]); }
-      })); 
+function numberToWordsFr(n){
+  const units = ['zéro','un','deux','trois','quatre','cinq','six','sept','huit','neuf','dix','onze','douze','treize','quatorze','quinze','seize'];
+  const tens = ['', '', 'vingt','trente','quarante','cinquante','soixante','soixante','quatre-vingt','quatre-vingt'];
+  if(n<0) return 'moins '+numberToWordsFr(-n);
+  if(n<=16) return units[n];
+  if(n<20) return 'dix-' + units[n-10];
+  if(n<100){
+    let t = Math.floor(n/10), u = n%10;
+    if(t===7 || t===9){
+      const base = t===7?60:80; const rem = n - base;
+      if(rem<=16) return tens[t] + (rem?'-'+numberToWordsFr(rem):'');
     }
+    let sep = u ? (u===1 && (t===1||t>1 && t!==8)?'-et-':'-') : '';
+    return tens[t] + (u?sep + numberToWordsFr(u):'');
+  }
+  if(n<1000){
+    let h = Math.floor(n/100), rem = n%100;
+    let prefix = h>1? numberToWordsFr(h) + ' cent' : 'cent';
+    if(h>1 && rem===0) prefix += 's';
+    return prefix + (rem? ' '+numberToWordsFr(rem):'');
+  }
+  if(n<1000000){
+    const k = Math.floor(n/1000), rem = n%1000;
+    const prefix = k>1? numberToWordsFr(k)+' mille' : 'mille';
+    return prefix + (rem? ' '+numberToWordsFr(rem):'');
+  }
+  if(n<1000000000){
+    const m = Math.floor(n/1000000), rem = n%1000000;
+    const prefix = m>1? numberToWordsFr(m)+' million' : 'un million';
+    return prefix + (rem? ' '+numberToWordsFr(rem):'');
+  }
+  return n.toString();
+}
 
-    function populateForm(d){
-      $('numDevis').value = d.numDevis || '';
-      $('nomClient').value = d.nom || '';
-      $('matricule').value = d.matricule || '';
-      $('service').value = d.service || '';
-      tbody.innerHTML=''; (d.items||[]).forEach(it=>addRow(it));
-    }
+/* ================= NAVIGATION (pas de rechargement de page) ================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    $(btn.dataset.target).classList.add('active');
+  });
+});
 
-    document.getElementById('saveDevis').addEventListener('click', ()=>{
-      const data = collectForm();
-      const list = loadDevisList();
-      const exist = list.findIndex(x=>x.numDevis===data.numDevis);
-      if(exist>=0){
-        // On modifie un bon existant : on ne consomme pas de nouveau numéro
-        if(!confirm('Numéro de bon de livraison déjà existant — remplacer ?')) return;
-        list[exist]=data;
-        saveDevisList(list);
-        alert('Bon de livraison sauvegardé ✔️');
-      } else {
-        // Nouveau bon : on consomme le numéro et on prépare le suivant
-        list.unshift(data);
-        saveDevisList(list);
-        commitNextNum();
-        $('numDevis').value = peekNextNum();
-        alert('Bon de livraison sauvegardé ✔️');
+/* ================================================================
+   BON DE LIVRAISON
+   ================================================================ */
+(function(){
+  const tbody = $('bl-tbody');
+  let editingId = null;
+
+  function addRow(data={designation:'',qty:1}){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class='bl-des' value="${escapeHtml(data.designation)}" placeholder='Désignation'></td>
+      <td><input class='bl-qty' type='number' min='0' value='${data.qty}'></td>
+      <td><button type="button" class='btn btn-ghost bl-del'>Suppr</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector('.bl-del').addEventListener('click', ()=>tr.remove());
+  }
+  $('bl-addRow').addEventListener('click', ()=>addRow());
+
+  async function refreshNumber(){
+    $('bl-num').value = 'BL-' + String(await peekNumber('bl')).padStart(4,'0');
+  }
+
+  function collect(){
+    return {
+      nom: $('bl-nom').value,
+      matricule: $('bl-matricule').value,
+      numDevis: $('bl-num').value,
+      dateDevis: $('bl-date').value,
+      service: $('bl-service').value,
+      nomClient: $('bl-nom').value,
+      items: [...tbody.querySelectorAll('tr')].map(r=>({
+        des: r.querySelector('.bl-des').value,
+        qty: Number(r.querySelector('.bl-qty').value)||0
+      })).filter(i=>i.des || i.qty)
+    };
+  }
+
+  function populate(d){
+    $('bl-num').value = d.numDevis || '';
+    $('bl-nom').value = d.nom || '';
+    $('bl-matricule').value = d.matricule || '';
+    $('bl-service').value = d.service || '';
+    if(d.dateDevis) $('bl-date').value = d.dateDevis;
+    tbody.innerHTML = '';
+    (d.items||[]).forEach(it=>addRow(it));
+  }
+
+  async function generatePDF(dataObj){
+    try{
+      const { jsPDF } = window.jspdf;
+      const doc_ = new jsPDF({unit:'pt',format:'a4'});
+      const leftMargin=40, rightMargin=40, pageWidth = doc_.internal.pageSize.getWidth();
+
+      const logoSize = 190;
+      const img = await loadImageSafe('https://i.postimg.cc/85RsLkrb/LOGO.png');
+      if(img && img.naturalWidth>0){
+        try{ doc_.addImage(img,'PNG', pageWidth-rightMargin-logoSize, 30, logoSize, logoSize);}catch(e){console.warn(e);}
       }
-    });
-    
-    // Initialiser la date avec la date du jour
-    const today = new Date();
-    const formattedDate = today.toISOString().substr(0, 10);
-    $('dateDevis').value = formattedDate;
 
-    // Initialiser le numéro automatique
-    $('numDevis').value = peekNextNum();
-    
-    // init
-    addRow(); renderDevisList();
-    
-  </script>
+      if(dataObj.dateDevis){
+        const d = new Date(dataObj.dateDevis);
+        doc_.setFontSize(11); doc_.setFont('helvetica','normal');
+        doc_.text('Date: '+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}), leftMargin, 70);
+      }
+      doc_.setFontSize(16); doc_.setFont('helvetica','bold');
+      doc_.text('BON DE LIVRAISON '+(dataObj.numDevis||''), leftMargin, 105);
+      doc_.setFontSize(14); doc_.setFont('helvetica','normal');
+      doc_.text('Nom: '+(dataObj.nom||''), leftMargin, 130);
+      doc_.text('Matricule: '+(dataObj.matricule||''), leftMargin, 145);
+      if(dataObj.service){
+        doc_.setFont('helvetica','bold');
+        doc_.text('Service: '+dataObj.service, leftMargin, 170);
+        doc_.setFont('helvetica','normal');
+      }
+
+      doc_.autoTable({
+        startY:240,
+        head:[['Désignation','Quantité']],
+        body: dataObj.items.map(it=>[it.des, it.qty]),
+        styles:{fontSize:13}, theme:'striped', headStyles:{fillColor:[15,74,200]},
+        margin:{left:leftMargin,right:rightMargin},
+        columnStyles:{0:{cellWidth:'auto'},1:{cellWidth:100,halign:'center'}}
+      });
+
+      const finalY = doc_.lastAutoTable.finalY + 20;
+      doc_.setDrawColor(0); doc_.setLineWidth(0.5);
+      doc_.line(leftMargin, finalY, pageWidth-rightMargin, finalY);
+
+      const signatureY = finalY + 30;
+      doc_.setFontSize(19);
+      doc_.text('  '+(dataObj.nomClient||''), leftMargin, signatureY+20);
+      doc_.setFontSize(12);
+      doc_.text('Le Garagiste', pageWidth-rightMargin-50, signatureY, {align:'right'});
+
+      const tamponImg = await loadImageSafe('https://i.postimg.cc/PJhQ4P0f/LOCATION-VENTEDEVEHICULES-PIECESDERECHANGE-REPARATION-2.png');
+      if(tamponImg && tamponImg.naturalWidth>0){
+        try{
+          const w=170, h=w*(tamponImg.naturalHeight/tamponImg.naturalWidth);
+          doc_.addImage(tamponImg,'PNG', pageWidth-rightMargin-w-10, signatureY+40, w, h);
+        }catch(e){console.warn(e);}
+      }
+
+      doc_.setFontSize(9); doc_.setFont('helvetica','italic');
+      doc_.text("Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com", pageWidth/2, doc_.internal.pageSize.getHeight()-40, {align:'center'});
+      doc_.text("CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320", pageWidth/2, doc_.internal.pageSize.getHeight()-30, {align:'center'});
+
+      doc_.save((dataObj.numDevis||'bon-de-livraison')+'.pdf');
+    }catch(err){
+      console.error(err);
+      alert("Le PDF n'a pas pu être généré. Détail dans la console (F12).");
+    }
+  }
+
+  $('bl-generatePdf').addEventListener('click', async ()=>{
+    await generatePDF(collect());
+  });
+
+  $('bl-clear').addEventListener('click', async ()=>{
+    if(!confirm('Nouveau bon de livraison ? Les champs seront réinitialisés.')) return;
+    tbody.innerHTML=''; addRow();
+    $('bl-nom').value=''; $('bl-matricule').value=''; $('bl-service').value='';
+    $('bl-date').value = new Date().toISOString().substr(0,10);
+    editingId = null;
+    await refreshNumber();
+  });
+
+  $('bl-save').addEventListener('click', async ()=>{
+    const data = collect();
+    try{
+      if(editingId){
+        await updateDoc(doc(db,'bonsLivraison',editingId), data);
+      } else {
+        const n = await commitNumber('bl');
+        data.numDevis = 'BL-' + String(n).padStart(4,'0');
+        $('bl-num').value = data.numDevis;
+        await addDoc(collection(db,'bonsLivraison'), {...data, createdAt: Date.now()});
+        editingId = null;
+        await refreshNumber();
+      }
+      alert('Bon de livraison sauvegardé ✔️');
+    }catch(e){
+      console.error(e);
+      alert("Erreur de sauvegarde Firebase : " + e.message);
+    }
+  });
+
+  onSnapshot(query(collection(db,'bonsLivraison'), orderBy('createdAt','desc')), (snap)=>{
+    const list = $('bl-list'); list.innerHTML='';
+    if(snap.empty){ list.innerHTML = '<div class="muted">Aucun bon de livraison enregistré.</div>'; return; }
+    snap.forEach(docSnap=>{
+      const d = docSnap.data(); const id = docSnap.id;
+      const el = document.createElement('div'); el.className='list-item';
+      el.innerHTML = `<div><strong>${escapeHtml(d.numDevis)}</strong> — ${escapeHtml(d.nom||'—')}</div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-a="edit">✏️</button>
+          <button type="button" class="btn btn-ghost" data-a="pdf">📄</button>
+          <button type="button" class="btn btn-ghost" data-a="del">🗑️</button>
+        </div>`;
+      el.querySelector('[data-a="edit"]').addEventListener('click', ()=>{ editingId=id; populate(d); });
+      el.querySelector('[data-a="pdf"]').addEventListener('click', ()=>generatePDF(d));
+      el.querySelector('[data-a="del"]').addEventListener('click', async ()=>{
+        if(confirm('Supprimer ce bon de livraison ?')) await deleteDoc(doc(db,'bonsLivraison',id));
+      });
+      list.appendChild(el);
+    });
+  }, (err)=>{ console.error(err); $('bl-list').innerHTML = '<div class="muted">Erreur de connexion Firebase.</div>'; });
+
+  // init
+  $('bl-date').value = new Date().toISOString().substr(0,10);
+  addRow();
+  refreshNumber();
+})();
+
+/* ================================================================
+   DEVIS
+   ================================================================ */
+(function(){
+  const tbody = $('dv-tbody');
+  let editingId = null;
+
+  function addRow(data={designation:'',qty:1,pu:0}){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class='dv-des' value="${escapeHtml(data.designation)}" placeholder='Désignation'></td>
+      <td><input class='dv-qty' type='number' min='0' value='${data.qty}'></td>
+      <td><input class='dv-pu' type='number' min='0' value='${data.pu}'></td>
+      <td class='dv-montant'>0</td>
+      <td><button type="button" class='btn btn-ghost dv-del'>Suppr</button></td>`;
+    tbody.appendChild(tr);
+    const qty=tr.querySelector('.dv-qty'), pu=tr.querySelector('.dv-pu');
+    function upd(){
+      tr.querySelector('.dv-montant').textContent = ((Number(qty.value)||0)*(Number(pu.value)||0)).toFixed(0);
+      recalc();
+    }
+    qty.addEventListener('input', upd); pu.addEventListener('input', upd);
+    tr.querySelector('.dv-del').addEventListener('click', ()=>{ tr.remove(); recalc(); });
+    recalc();
+  }
+  $('dv-addRow').addEventListener('click', ()=>addRow());
+
+  function recalc(){
+    let total=0;
+    [...tbody.querySelectorAll('tr')].forEach(r=>{
+      total += (Number(r.querySelector('.dv-qty').value)||0) * (Number(r.querySelector('.dv-pu').value)||0);
+    });
+    $('dv-total').textContent = Math.round(total).toFixed(0);
+    return Math.round(total);
+  }
+
+  async function refreshNumber(){
+    const year = new Date().getFullYear();
+    const n = await peekNumber('devis_'+year);
+    $('dv-num').textContent = `DV-${year}-${String(n).padStart(4,'0')}`;
+  }
+
+  function collect(){
+    const type = document.querySelector('input[name="dv-type"]:checked').value;
+    const items = [...tbody.querySelectorAll('tr')].map(r=>({
+      des:r.querySelector('.dv-des').value,
+      qty:Number(r.querySelector('.dv-qty').value)||0,
+      pu:Number(r.querySelector('.dv-pu').value)||0
+    }));
+    return {
+      type, nom:$('dv-nom').value, tel:$('dv-tel').value, marque:$('dv-marque').value,
+      matricule:$('dv-matricule').value, numDevis:$('dv-num').textContent,
+      dateDevis:$('dv-date').value, travail:$('dv-travail').value, items,
+      totalTTC: recalc()
+    };
+  }
+
+  function populate(d){
+    const radio = document.querySelector(`input[name="dv-type"][value="${d.type}"]`);
+    if(radio) radio.checked = true;
+    $('dv-num').textContent = d.numDevis || '';
+    $('dv-nom').value = d.nom || '';
+    $('dv-tel').value = d.tel || '';
+    $('dv-marque').value = d.marque || '';
+    $('dv-matricule').value = d.matricule || '';
+    $('dv-travail').value = d.travail || '';
+    if(d.dateDevis) $('dv-date').value = d.dateDevis;
+    tbody.innerHTML=''; (d.items||[]).forEach(it=>addRow(it));
+  }
+
+  async function generatePDF(dataObj){
+    try{
+      const { jsPDF } = window.jspdf;
+      const doc_ = new jsPDF({unit:'pt',format:'a4'});
+      const leftMargin=40, rightMargin=40, pageWidth=doc_.internal.pageSize.getWidth();
+
+      const logoSize=155;
+      const img = await loadImageSafe('https://i.postimg.cc/85RsLkrb/LOGO.png');
+      if(img && img.naturalWidth>0){
+        try{ doc_.addImage(img,'PNG', pageWidth-rightMargin-logoSize, 40, logoSize, logoSize);}catch(e){console.warn(e);}
+      }
+      doc_.setFontSize(10); doc_.setFont('helvetica','normal');
+      doc_.text('Tel: +221 70 878 19 89 / 77 470 47 42', pageWidth-rightMargin-10, 205, {align:'right'});
+      doc_.text('Email: etsiniasseetfreres@yahoo.com', pageWidth-rightMargin-10, 218, {align:'right'});
+
+      if(dataObj.dateDevis){
+        const d = new Date(dataObj.dateDevis);
+        doc_.setFontSize(11); doc_.setFont('helvetica','normal');
+        doc_.text('Date: '+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}), leftMargin, 70);
+      }
+      doc_.setFontSize(16); doc_.setFont('helvetica','bold');
+      doc_.text('Devis: '+(dataObj.numDevis||''), leftMargin, 90);
+      doc_.setFontSize(14); doc_.setFont('helvetica','normal');
+      if(dataObj.nom) doc_.text('Nom: '+dataObj.nom, leftMargin, 110);
+      if(dataObj.tel) doc_.text('Téléphone: '+dataObj.tel, leftMargin, 125);
+      if(dataObj.marque) doc_.text('Marque: '+dataObj.marque, leftMargin, 140);
+      if(dataObj.matricule) doc_.text('Matricule: '+dataObj.matricule, leftMargin, 155);
+
+      let workLines = [];
+      if(dataObj.travail){
+        doc_.text('Description des travaux:', leftMargin, 180);
+        doc_.setFontSize(11);
+        workLines = doc_.splitTextToSize(dataObj.travail, pageWidth-leftMargin-rightMargin);
+        doc_.text(workLines, leftMargin, 195);
+      }
+
+      const rightColBottom = 218;
+      const leftColBottom = dataObj.travail ? 195 + workLines.length*12 : 155;
+      const startY = Math.max(rightColBottom, leftColBottom) + 20;
+
+      if(dataObj.items && dataObj.items.length>0){
+        doc_.autoTable({
+          startY, head:[['Désignation','Quantité','Prix unitaire','Montant']],
+          body: dataObj.items.map(it=>[it.des, it.qty, Number(it.pu).toFixed(0)+' FCFA', Number(it.qty*it.pu||0).toFixed(0)+' FCFA']),
+          styles:{fontSize:13}, theme:'striped', headStyles:{fillColor:[15,74,200]},
+          margin:{left:leftMargin,right:rightMargin}
+        });
+      }
+      const finalY = dataObj.items && dataObj.items.length>0 ? doc_.lastAutoTable.finalY+40 : startY+40;
+      doc_.setFontSize(15); doc_.setFont('helvetica','bold');
+      doc_.text('Total : '+dataObj.totalTTC.toFixed(0)+' FCFA', pageWidth-rightMargin-10, finalY+20, {align:'right'});
+
+      const enLettre = numberToWordsFr(Math.round(dataObj.totalTTC));
+      doc_.setFont('helvetica','normal'); doc_.setFontSize(10);
+      doc_.text('Arrêté le présent devis à la somme de '+enLettre+' FRANCS CFA.', leftMargin, finalY+50);
+
+      doc_.setFontSize(7); doc_.setFont('helvetica','italic');
+      doc_.text("Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com/CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320",
+        pageWidth/2, doc_.internal.pageSize.getHeight()-30, {align:'center'});
+
+      doc_.save((dataObj.numDevis||'devis')+'.pdf');
+    }catch(err){
+      console.error(err);
+      alert("Le PDF n'a pas pu être généré. Détail dans la console (F12).");
+    }
+  }
+
+  $('dv-generatePdf').addEventListener('click', async ()=>{
+    await generatePDF(collect());
+  });
+
+  $('dv-clear').addEventListener('click', async ()=>{
+    if(!confirm('Créer un nouveau devis ? Les champs seront réinitialisés.')) return;
+    tbody.innerHTML=''; addRow(); recalc();
+    $('dv-nom').value=''; $('dv-tel').value=''; $('dv-marque').value=''; $('dv-matricule').value=''; $('dv-travail').value='';
+    $('dv-date').value = new Date().toISOString().substr(0,10);
+    editingId = null;
+    await refreshNumber();
+  });
+
+  $('dv-save').addEventListener('click', async ()=>{
+    const data = collect();
+    try{
+      if(editingId){
+        await updateDoc(doc(db,'devis',editingId), data);
+      } else {
+        const year = new Date().getFullYear();
+        const n = await commitNumber('devis_'+year);
+        data.numDevis = `DV-${year}-${String(n).padStart(4,'0')}`;
+        $('dv-num').textContent = data.numDevis;
+        await addDoc(collection(db,'devis'), {...data, createdAt: Date.now()});
+        editingId = null;
+        await refreshNumber();
+      }
+      alert('Devis sauvegardé ✔️');
+    }catch(e){
+      console.error(e);
+      alert("Erreur de sauvegarde Firebase : " + e.message);
+    }
+  });
+
+  onSnapshot(query(collection(db,'devis'), orderBy('createdAt','desc')), (snap)=>{
+    const list = $('dv-list'); list.innerHTML='';
+    if(snap.empty){ list.innerHTML='<div class="muted">Aucun devis enregistré.</div>'; return; }
+    snap.forEach(docSnap=>{
+      const d = docSnap.data(); const id = docSnap.id;
+      const el = document.createElement('div'); el.className='list-item';
+      el.innerHTML = `<div><strong>${escapeHtml(d.numDevis)}</strong> — ${escapeHtml(d.nom||'—')}<div class="small muted">${Number(d.totalTTC||0).toFixed(0)} FCFA</div></div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-a="edit">✏️</button>
+          <button type="button" class="btn btn-ghost" data-a="pdf">📄</button>
+          <button type="button" class="btn btn-ghost" data-a="del">🗑️</button>
+        </div>`;
+      el.querySelector('[data-a="edit"]').addEventListener('click', ()=>{ editingId=id; populate(d); });
+      el.querySelector('[data-a="pdf"]').addEventListener('click', ()=>generatePDF(d));
+      el.querySelector('[data-a="del"]').addEventListener('click', async ()=>{
+        if(confirm('Supprimer ce devis ?')) await deleteDoc(doc(db,'devis',id));
+      });
+      list.appendChild(el);
+    });
+  }, (err)=>{ console.error(err); $('dv-list').innerHTML='<div class="muted">Erreur de connexion Firebase.</div>'; });
+
+  $('dv-date').value = new Date().toISOString().substr(0,10);
+  addRow();
+  refreshNumber();
+})();
+
+/* ================================================================
+   FACTURE
+   ================================================================ */
+(function(){
+  const tbody = $('fa-tbody');
+  let editingId = null;
+
+  function fmt(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  function addRow(data={name:'',quantity:0,price:0}){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class='fa-name' type="text" value="${escapeHtml(data.name)}"></td>
+      <td><input class='fa-qty' type="number" min="0" value="${data.quantity}"></td>
+      <td><input class='fa-price' type="number" min="0" value="${data.price}"></td>
+      <td class='fa-rowtotal'>0</td>
+      <td><button type="button" class="btn btn-ghost fa-del">X</button></td>`;
+    tbody.appendChild(tr);
+    const qty=tr.querySelector('.fa-qty'), price=tr.querySelector('.fa-price');
+    function upd(){
+      tr.querySelector('.fa-rowtotal').textContent = fmt((Number(qty.value)||0)*(Number(price.value)||0));
+      recalc();
+    }
+    qty.addEventListener('input', upd); price.addEventListener('input', upd);
+    tr.querySelector('.fa-del').addEventListener('click', ()=>{ tr.remove(); recalc(); });
+    recalc();
+  }
+  $('fa-addRow').addEventListener('click', ()=>addRow());
+
+  function recalc(){
+    let sousTotal=0;
+    [...tbody.querySelectorAll('tr')].forEach(r=>{
+      sousTotal += (Number(r.querySelector('.fa-qty').value)||0) * (Number(r.querySelector('.fa-price').value)||0);
+    });
+    const tvaRate = parseFloat($('fa-tva').value)||0;
+    const tva = sousTotal*(tvaRate/100);
+    const totalTTC = sousTotal+tva;
+    $('fa-subtotal').textContent = fmt(sousTotal);
+    $('fa-tvaLine').innerHTML = `TVA (${tvaRate}%): <span id="fa-tvaAmount">${fmt(tva)}</span> FCFA`;
+    $('fa-totalttc').textContent = fmt(totalTTC);
+    $('fa-lettres').textContent = `Arrêté à la somme de: ${numberToWordsFr(Math.round(totalTTC))} francs CFA`;
+    return {sousTotal, tva, totalTTC, tvaRate};
+  }
+  $('fa-tva').addEventListener('input', recalc);
+
+  async function refreshNumber(){
+    const year = new Date().getFullYear();
+    const n = await peekNumber('facture_'+year);
+    $('fa-num').value = `FACT-${year}-${String(n).padStart(3,'0')}`;
+  }
+
+  function collect(){
+    const totals = recalc();
+    const items = [...tbody.querySelectorAll('tr')].map(r=>({
+      name:r.querySelector('.fa-name').value,
+      quantity:Number(r.querySelector('.fa-qty').value)||0,
+      price:Number(r.querySelector('.fa-price').value)||0
+    }));
+    return {
+      invoiceNumber: $('fa-num').value,
+      date: $('fa-date').value,
+      tvaRate: totals.tvaRate,
+      customer: {
+        name: $('fa-nom').value, phone: $('fa-tel').value,
+        address: $('fa-adresse').value, email: $('fa-email').value
+      },
+      items, sousTotal: totals.sousTotal, tva: totals.tva, totalTTC: totals.totalTTC
+    };
+  }
+
+  function populate(d){
+    $('fa-num').value = d.invoiceNumber || '';
+    if(d.date) $('fa-date').value = d.date;
+    $('fa-tva').value = d.tvaRate ?? 18;
+    $('fa-nom').value = d.customer?.name || '';
+    $('fa-tel').value = d.customer?.phone || '';
+    $('fa-adresse').value = d.customer?.address || '';
+    $('fa-email').value = d.customer?.email || '';
+    tbody.innerHTML=''; (d.items||[]).forEach(it=>addRow(it));
+    recalc();
+  }
+
+  async function generatePDF(order){
+    try{
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p','mm','a4');
+      let y = 20;
+
+      const img = await loadImageSafe('https://i.postimg.cc/Ss21d9Rp/LOGO.png');
+      if(img && img.naturalWidth>0){
+        try{ pdf.addImage(img,'PNG',19,4,40,40); }catch(e){ console.warn(e); }
+      }
+
+      pdf.setFontSize(18); pdf.setFont(undefined,'bold');
+      pdf.text("ETS NIASS & FRÈRE",110,20,{align:'center'});
+      pdf.setFontSize(12); pdf.setFont(undefined,'normal');
+      pdf.text("Réparation – Pièces détachées ",110,27,{align:'center'});
+      pdf.text("Vente & Location de véhicules",110,32,{align:'center'});
+
+      pdf.setFontSize(16); pdf.setFont(undefined,'bold');
+      pdf.text("FACTURE",160,20);
+      pdf.setFontSize(10); pdf.setFont(undefined,'normal');
+      pdf.text(`N°: ${order.invoiceNumber}`,160,27);
+      pdf.text(`Date: ${order.date}`,160,32);
+
+      y=45; pdf.line(15,y,195,y); y+=15;
+
+      pdf.setFontSize(12); pdf.setFont(undefined,'bold');
+      pdf.text("Facturé à:",20,y);
+      y+=7; pdf.setFont(undefined,'normal');
+      if(order.customer.name) pdf.text(order.customer.name,20,y);
+      y+=6; if(order.customer.phone) pdf.text(order.customer.phone,20,y);
+      y+=6; if(order.customer.email) pdf.text(order.customer.email,20,y);
+      y+=6; if(order.customer.address) pdf.text(order.customer.address,20,y);
+      y+=15;
+
+      pdf.setFillColor(240,240,240); pdf.rect(15,y,180,10,'F');
+      pdf.setFont(undefined,'bold');
+      pdf.text("Description",20,y+7);
+      pdf.text("Prix unitaire",110,y+7,{align:'right'});
+      pdf.text("Quantité",140,y+7,{align:'right'});
+      pdf.text("Total",180,y+7,{align:'right'});
+      y+=10; pdf.setFont(undefined,'normal');
+
+      order.items.forEach(item=>{
+        if(y>250){ pdf.addPage(); y=20; }
+        const splitName = pdf.splitTextToSize(item.name||'',70);
+        const rowHeight = Math.max(10, splitName.length*7);
+        pdf.text(splitName,20,y+5);
+        pdf.text(`${fmt(item.price)} FCFA`,110,y+5,{align:'right'});
+        pdf.text(`${item.quantity}`,140,y+5,{align:'right'});
+        pdf.text(`${fmt(item.price*item.quantity)} FCFA`,180,y+5,{align:'right'});
+        y+=rowHeight; pdf.line(15,y,195,y);
+      });
+
+      y+=10; pdf.setFont(undefined,'bold');
+      pdf.text("Sous-total:",140,y,{align:'right'});
+      pdf.text(`${fmt(order.sousTotal)} FCFA`,180,y,{align:'right'});
+      if(order.tvaRate>0 && order.tva>0){
+        y+=7;
+        pdf.text(`TVA (${order.tvaRate}%):`,140,y,{align:'right'});
+        pdf.text(`${fmt(order.tva)} FCFA`,180,y,{align:'right'});
+      }
+      y+=7;
+      pdf.text("Total TTC:",140,y,{align:'right'});
+      pdf.text(`${fmt(order.totalTTC)} FCFA`,180,y,{align:'right'});
+
+      y+=10; pdf.setFont(undefined,'italic'); pdf.setFontSize(9);
+      pdf.text(`Arrêté à la somme de: ${numberToWordsFr(Math.round(order.totalTTC))} francs CFA`, 20, y, {maxWidth:170});
+
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const footerY = pageHeight-25;
+      pdf.setFontSize(8);
+      pdf.text("Route de Sangalkam près de la station de pesage - Sénégal", pdf.internal.pageSize.getWidth()/2, footerY, {align:'center'});
+      pdf.text("Tel: +221 70 878 19 89 - 77 470 47 42 / Email: etsiniasseetfreres@yahoo.com", pdf.internal.pageSize.getWidth()/2, footerY+7, {align:'center'});
+      pdf.text("CPTE: CORISBANK SN213 01018 005058724101 42 - NINEA: 004119964 - RCCM: SN THS 2009.A.2320", pdf.internal.pageSize.getWidth()/2, footerY+13, {align:'center'});
+
+      pdf.save(`Facture-${order.invoiceNumber}.pdf`);
+    }catch(err){
+      console.error(err);
+      alert("Le PDF n'a pas pu être généré. Détail dans la console (F12).");
+    }
+  }
+
+  $('fa-generate').addEventListener('click', async ()=>{
+    const data = collect();
+    try{
+      if(editingId){
+        await updateDoc(doc(db,'factures',editingId), data);
+      } else {
+        const year = new Date().getFullYear();
+        const n = await commitNumber('facture_'+year);
+        data.invoiceNumber = `FACT-${year}-${String(n).padStart(3,'0')}`;
+        $('fa-num').value = data.invoiceNumber;
+        await addDoc(collection(db,'factures'), {...data, createdAt: Date.now()});
+        editingId = null;
+        await refreshNumber();
+      }
+      await generatePDF(data);
+    }catch(e){
+      console.error(e);
+      alert("Erreur de sauvegarde Firebase : " + e.message);
+    }
+  });
+
+  $('fa-clear').addEventListener('click', async ()=>{
+    if(!confirm('Créer une nouvelle facture ? Les champs seront réinitialisés.')) return;
+    tbody.innerHTML=''; addRow();
+    $('fa-nom').value=''; $('fa-tel').value=''; $('fa-adresse').value=''; $('fa-email').value='';
+    $('fa-tva').value = 18;
+    $('fa-date').value = new Date().toISOString().substr(0,10);
+    editingId = null;
+    await refreshNumber();
+    recalc();
+  });
+
+  onSnapshot(query(collection(db,'factures'), orderBy('createdAt','desc')), (snap)=>{
+    const list = $('fa-list'); list.innerHTML='';
+    if(snap.empty){ list.innerHTML='<div class="muted">Aucune facture enregistrée.</div>'; return; }
+    snap.forEach(docSnap=>{
+      const d = docSnap.data(); const id = docSnap.id;
+      const el = document.createElement('div'); el.className='list-item';
+      el.innerHTML = `<div><strong>${escapeHtml(d.invoiceNumber)}</strong> — ${escapeHtml(d.customer?.name||'—')}<div class="small muted">${fmt(d.totalTTC||0)} FCFA</div></div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-a="edit">✏️</button>
+          <button type="button" class="btn btn-ghost" data-a="pdf">📄</button>
+          <button type="button" class="btn btn-ghost" data-a="del">🗑️</button>
+        </div>`;
+      el.querySelector('[data-a="edit"]').addEventListener('click', ()=>{ editingId=id; populate(d); });
+      el.querySelector('[data-a="pdf"]').addEventListener('click', ()=>generatePDF(d));
+      el.querySelector('[data-a="del"]').addEventListener('click', async ()=>{
+        if(confirm('Supprimer cette facture ?')) await deleteDoc(doc(db,'factures',id));
+      });
+      list.appendChild(el);
+    });
+  }, (err)=>{ console.error(err); $('fa-list').innerHTML='<div class="muted">Erreur de connexion Firebase.</div>'; });
+
+  $('fa-date').value = new Date().toISOString().substr(0,10);
+  addRow();
+  refreshNumber();
+})();
+</script>
 </body>
 </html>
