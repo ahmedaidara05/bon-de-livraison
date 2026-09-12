@@ -87,7 +87,7 @@
 
 <!-- ============ PANEL DEVIS ============ -->
 <section id="panel-devis" class="panel">
-  <h1 class="page-title">Devis sans TVA — ETS NIASS & FRÈRE</h1>
+  <h1 class="page-title">Devis — ETS NIASS & FRÈRE</h1>
   <div class="card" style="display:grid;grid-template-columns:1fr 360px;gap:18px">
     <div>
       <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
@@ -113,6 +113,12 @@
         <tbody id="dv-tbody"></tbody>
       </table>
       <div style="margin-top:10px"><button type="button" class="btn btn-ghost" id="dv-addRow">➕ Ajouter une ligne</button></div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-ghost" id="dv-tvaToggle">➖ Sans TVA</button>
+        <input type="number" id="dv-tvaRate" value="18" min="0" max="100" step="0.1" style="display:none;width:110px">
+      </div>
+      <div class="total-line" id="dv-subtotalLine" style="display:none">Sous-total: <span id="dv-subtotal">0</span> FCFA</div>
+      <div class="total-line" id="dv-tvaLine" style="display:none">TVA (<span id="dv-tvaPct">18</span>%): <span id="dv-tvaAmount">0</span> FCFA</div>
       <div class="total-line">Total: <span id="dv-total">0</span> FCFA</div>
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
         <button type="button" class="btn btn-primary" id="dv-generatePdf">Générer PDF</button>
@@ -135,7 +141,13 @@
       <div><label>Numéro de Facture (automatique)</label><input type="text" id="fa-num" readonly></div>
       <div><label>Date</label><input type="date" id="fa-date"></div>
     </div>
-    <div style="margin-top:10px"><label>Taux TVA (%)</label><input type="number" id="fa-tva" value="18" min="0" max="100" step="0.1"></div>
+    <div style="margin-top:10px;display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      <button type="button" class="btn btn-ghost" id="fa-tvaToggle">✅ Avec TVA</button>
+      <div id="fa-tvaRateWrap" style="min-width:160px">
+        <label>Taux TVA (%)</label>
+        <input type="number" id="fa-tva" value="18" min="0" max="100" step="0.1">
+      </div>
+    </div>
 
     <h3>Client</h3>
     <div class="grid2">
@@ -341,6 +353,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
         try{ doc_.addImage(img,'PNG', pageWidth-rightMargin-logoSize, 30, logoSize, logoSize);}catch(e){console.warn(e);}
       }
 
+      // Coordonnées juste sous le logo (même présentation que le devis)
+      doc_.setFontSize(10); doc_.setFont('helvetica','normal');
+      doc_.text('Tel: +221 70 878 19 89 / 77 470 47 42', pageWidth-rightMargin-10, 235, {align:'right'});
+      doc_.text('Email: etsiniasseetfreres@yahoo.com', pageWidth-rightMargin-10, 248, {align:'right'});
+
       if(dataObj.dateDevis){
         const d = new Date(dataObj.dateDevis);
         doc_.setFontSize(11); doc_.setFont('helvetica','normal');
@@ -358,7 +375,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       }
 
       doc_.autoTable({
-        startY:240,
+        startY:268,
         head:[['Désignation','Quantité']],
         body: dataObj.items.map(it=>[it.des, it.qty]),
         styles:{fontSize:13}, theme:'striped', headStyles:{fillColor:[15,74,200]},
@@ -461,6 +478,18 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 (function(){
   const tbody = $('dv-tbody');
   let editingId = null;
+  let dvTvaOn = false;
+
+  function updateTvaToggleUI(){
+    $('dv-tvaToggle').textContent = dvTvaOn ? '✅ Avec TVA' : '➖ Sans TVA';
+    $('dv-tvaRate').style.display = dvTvaOn ? 'inline-block' : 'none';
+  }
+  $('dv-tvaToggle').addEventListener('click', ()=>{
+    dvTvaOn = !dvTvaOn;
+    updateTvaToggleUI();
+    recalc();
+  });
+  $('dv-tvaRate').addEventListener('input', recalc);
 
   function addRow(data={designation:'',qty:1,pu:0}){
     const tr = document.createElement('tr');
@@ -487,8 +516,18 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     [...tbody.querySelectorAll('tr')].forEach(r=>{
       total += (Number(r.querySelector('.dv-qty').value)||0) * (Number(r.querySelector('.dv-pu').value)||0);
     });
-    $('dv-total').textContent = Math.round(total).toFixed(0);
-    return Math.round(total);
+    const tvaRate = dvTvaOn ? (parseFloat($('dv-tvaRate').value)||0) : 0;
+    const tva = total*(tvaRate/100);
+    const totalTTC = total+tva;
+
+    $('dv-subtotalLine').style.display = dvTvaOn ? 'block' : 'none';
+    $('dv-subtotal').textContent = Math.round(total).toFixed(0);
+    $('dv-tvaLine').style.display = dvTvaOn ? 'block' : 'none';
+    $('dv-tvaPct').textContent = tvaRate;
+    $('dv-tvaAmount').textContent = Math.round(tva).toFixed(0);
+    $('dv-total').textContent = Math.round(totalTTC).toFixed(0);
+
+    return { sousTotal: Math.round(total), tva: Math.round(tva), totalTTC: Math.round(totalTTC), tvaRate, tvaOn: dvTvaOn };
   }
 
   async function refreshNumber(){
@@ -504,11 +543,13 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       qty:Number(r.querySelector('.dv-qty').value)||0,
       pu:Number(r.querySelector('.dv-pu').value)||0
     }));
+    const totals = recalc();
     return {
       type, nom:$('dv-nom').value, tel:$('dv-tel').value, marque:$('dv-marque').value,
       matricule:$('dv-matricule').value, numDevis:$('dv-num').textContent,
       dateDevis:$('dv-date').value, travail:$('dv-travail').value, items,
-      totalTTC: recalc()
+      sousTotal: totals.sousTotal, tva: totals.tva, tvaRate: totals.tvaRate, tvaOn: totals.tvaOn,
+      totalTTC: totals.totalTTC
     };
   }
 
@@ -522,7 +563,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     $('dv-matricule').value = d.matricule || '';
     $('dv-travail').value = d.travail || '';
     if(d.dateDevis) $('dv-date').value = d.dateDevis;
+    dvTvaOn = !!d.tvaOn;
+    $('dv-tvaRate').value = d.tvaRate ?? 18;
+    updateTvaToggleUI();
     tbody.innerHTML=''; (d.items||[]).forEach(it=>addRow(it));
+    recalc();
   }
 
   async function generatePDF(dataObj){
@@ -574,12 +619,22 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
         });
       }
       const finalY = dataObj.items && dataObj.items.length>0 ? doc_.lastAutoTable.finalY+40 : startY+40;
-      doc_.setFontSize(15); doc_.setFont('helvetica','bold');
-      doc_.text('Total : '+dataObj.totalTTC.toFixed(0)+' FCFA', pageWidth-rightMargin-10, finalY+20, {align:'right'});
+      let ty = finalY;
+      doc_.setFont('helvetica','bold');
+      if(dataObj.tvaOn){
+        doc_.setFontSize(13);
+        doc_.text('Sous-total : '+dataObj.sousTotal.toFixed(0)+' FCFA', pageWidth-rightMargin-10, ty, {align:'right'});
+        ty += 18;
+        doc_.text('TVA ('+dataObj.tvaRate+'%) : '+dataObj.tva.toFixed(0)+' FCFA', pageWidth-rightMargin-10, ty, {align:'right'});
+        ty += 18;
+      }
+      doc_.setFontSize(15);
+      doc_.text('Total : '+dataObj.totalTTC.toFixed(0)+' FCFA', pageWidth-rightMargin-10, ty, {align:'right'});
+      ty += 30;
 
       const enLettre = numberToWordsFr(Math.round(dataObj.totalTTC));
       doc_.setFont('helvetica','normal'); doc_.setFontSize(10);
-      doc_.text('Arrêté le présent devis à la somme de '+enLettre+' FRANCS CFA.', leftMargin, finalY+50);
+      doc_.text('Arrêté le présent devis à la somme de '+enLettre+' FRANCS CFA.', leftMargin, ty);
 
       doc_.setFontSize(7); doc_.setFont('helvetica','italic');
       doc_.text("Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com/CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320",
@@ -598,11 +653,15 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 
   $('dv-clear').addEventListener('click', async ()=>{
     if(!confirm('Créer un nouveau devis ? Les champs seront réinitialisés.')) return;
-    tbody.innerHTML=''; addRow(); recalc();
+    tbody.innerHTML=''; addRow();
     $('dv-nom').value=''; $('dv-tel').value=''; $('dv-marque').value=''; $('dv-matricule').value=''; $('dv-travail').value='';
     $('dv-date').value = new Date().toISOString().substr(0,10);
+    dvTvaOn = false;
+    $('dv-tvaRate').value = 18;
+    updateTvaToggleUI();
     editingId = null;
     await refreshNumber();
+    recalc();
   });
 
   $('dv-save').addEventListener('click', async ()=>{
@@ -648,6 +707,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   }, (err)=>{ console.error(err); $('dv-list').innerHTML='<div class="muted">Erreur de connexion Firebase.</div>'; });
 
   $('dv-date').value = new Date().toISOString().substr(0,10);
+  updateTvaToggleUI();
   addRow();
   refreshNumber();
 })();
@@ -658,8 +718,19 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 (function(){
   const tbody = $('fa-tbody');
   let editingId = null;
+  let faTvaOn = true;
 
   function fmt(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  function updateFaTvaUI(){
+    $('fa-tvaToggle').textContent = faTvaOn ? '✅ Avec TVA' : '➖ Sans TVA';
+    $('fa-tvaRateWrap').style.display = faTvaOn ? 'block' : 'none';
+  }
+  $('fa-tvaToggle').addEventListener('click', ()=>{
+    faTvaOn = !faTvaOn;
+    updateFaTvaUI();
+    recalc();
+  });
 
   function addRow(data={name:'',quantity:0,price:0}){
     const tr = document.createElement('tr');
@@ -686,14 +757,15 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     [...tbody.querySelectorAll('tr')].forEach(r=>{
       sousTotal += (Number(r.querySelector('.fa-qty').value)||0) * (Number(r.querySelector('.fa-price').value)||0);
     });
-    const tvaRate = parseFloat($('fa-tva').value)||0;
+    const tvaRate = faTvaOn ? (parseFloat($('fa-tva').value)||0) : 0;
     const tva = sousTotal*(tvaRate/100);
     const totalTTC = sousTotal+tva;
     $('fa-subtotal').textContent = fmt(sousTotal);
+    $('fa-tvaLine').style.display = faTvaOn ? 'block' : 'none';
     $('fa-tvaLine').innerHTML = `TVA (${tvaRate}%): <span id="fa-tvaAmount">${fmt(tva)}</span> FCFA`;
     $('fa-totalttc').textContent = fmt(totalTTC);
     $('fa-lettres').textContent = `Arrêté à la somme de: ${numberToWordsFr(Math.round(totalTTC))} francs CFA`;
-    return {sousTotal, tva, totalTTC, tvaRate};
+    return {sousTotal, tva, totalTTC, tvaRate, tvaOn: faTvaOn};
   }
   $('fa-tva').addEventListener('input', recalc);
 
@@ -714,6 +786,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
       invoiceNumber: $('fa-num').value,
       date: $('fa-date').value,
       tvaRate: totals.tvaRate,
+      tvaOn: totals.tvaOn,
       customer: {
         name: $('fa-nom').value, phone: $('fa-tel').value,
         address: $('fa-adresse').value, email: $('fa-email').value
@@ -725,7 +798,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   function populate(d){
     $('fa-num').value = d.invoiceNumber || '';
     if(d.date) $('fa-date').value = d.date;
+    faTvaOn = d.tvaOn !== undefined ? !!d.tvaOn : (Number(d.tvaRate)||0) > 0;
     $('fa-tva').value = d.tvaRate ?? 18;
+    updateFaTvaUI();
     $('fa-nom').value = d.customer?.name || '';
     $('fa-tel').value = d.customer?.phone || '';
     $('fa-adresse').value = d.customer?.address || '';
@@ -841,7 +916,9 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
     if(!confirm('Créer une nouvelle facture ? Les champs seront réinitialisés.')) return;
     tbody.innerHTML=''; addRow();
     $('fa-nom').value=''; $('fa-tel').value=''; $('fa-adresse').value=''; $('fa-email').value='';
+    faTvaOn = true;
     $('fa-tva').value = 18;
+    updateFaTvaUI();
     $('fa-date').value = new Date().toISOString().substr(0,10);
     editingId = null;
     await refreshNumber();
@@ -870,6 +947,7 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   }, (err)=>{ console.error(err); $('fa-list').innerHTML='<div class="muted">Erreur de connexion Firebase.</div>'; });
 
   $('fa-date').value = new Date().toISOString().substr(0,10);
+  updateFaTvaUI();
   addRow();
   refreshNumber();
 })();
