@@ -28,6 +28,7 @@
 
     label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
     input[type=text],input[type=number],select,textarea{width:100%;padding:10px;border:1px solid #e5eefc;border-radius:8px;font-size:15px}
+    input[readonly]{background:#f3f7fd;color:#0f4ac8;font-weight:600}
     .radio-group{display:flex;gap:12px;align-items:center}
     .small{font-size:13px;color:var(--muted)}
 
@@ -337,8 +338,8 @@
       <div class="left">
        <div style="display:flex;gap:12px;align-items:center;justify-content:space-between">
   <div style="min-width:200px">
-    <label>Numéro BON DE LIVRAISON</label>
-    <input type="text" id="numDevis" placeholder=" " required>
+    <label>Numéro BON DE LIVRAISON (automatique)</label>
+    <input type="text" id="numDevis" readonly>
   </div>
   <div style="min-width:200px">
     <label>Date </label>
@@ -361,10 +362,7 @@
           <label>Service</label>
           <input type="text" id="service" placeholder=" ">
         </div>
-<div style="margin-top:12px">
-  <label> </label>
-  <input type="text" id="nomClient" placeholder="NE RIEN ECRIRE ICI">
-</div>
+
         <div class="table-wrap">
           <table id="itemsTable">
             <thead>
@@ -405,6 +403,24 @@
     const $ = id => document.getElementById(id);
     const qs = sel => document.querySelector(sel);
 
+    // ===== Numérotation automatique du bon de livraison =====
+    function getStoredCounter(){
+      return parseInt(localStorage.getItem('bl_counter') || '0', 10);
+    }
+    function formatNum(n){
+      return 'BL-' + String(n).padStart(4, '0');
+    }
+    // Affiche le prochain numéro disponible SANS le consommer
+    function peekNextNum(){
+      return formatNum(getStoredCounter() + 1);
+    }
+    // Consomme le numéro (à appeler uniquement à la sauvegarde d'un NOUVEAU bon)
+    function commitNextNum(){
+      const n = getStoredCounter() + 1;
+      localStorage.setItem('bl_counter', String(n));
+      return formatNum(n);
+    }
+
     // Table management
     const tbody = document.querySelector('#itemsTable tbody');
     function addRow(data={designation:'',qty:1}){
@@ -436,142 +452,145 @@
     document.getElementById('addRow').addEventListener('click', ()=>addRow());
     
     document.getElementById('clearForm').addEventListener('click', ()=>{
-      if(confirm('Réinitialiser le formulaire ?')){ document.getElementById('devisForm').reset(); tbody.innerHTML=''; addRow(); }
+      if(confirm('Réinitialiser le formulaire ?')){
+        document.getElementById('devisForm').reset();
+        tbody.innerHTML='';
+        addRow();
+        $('numDevis').value = peekNextNum();
+        const today = new Date();
+        $('dateDevis').value = today.toISOString().substr(0,10);
+      }
     });
+
+    // Charge une image de façon "sûre" : ne bloque jamais la génération du PDF
+    // même si l'image ne charge pas (CORS, lien mort, etc.)
+    function loadImageSafe(url){
+      return new Promise((resolve)=>{
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
 
     // PDF generation with jsPDF + autotable
     async function generatePDF(dataObj){
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({unit:'pt',format:'a4'});
-      const leftMargin = 40; const rightMargin = 40; const pageWidth = doc.internal.pageSize.getWidth();
+      try{
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({unit:'pt',format:'a4'});
+        const leftMargin = 40; const rightMargin = 40; const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Header: logo at top-right (square)
-      const img = new Image(); img.crossOrigin = 'anonymous'; img.src = 'https://i.postimg.cc/85RsLkrb/LOGO.png';
-      await new Promise(res=>{ img.onload = res; img.onerror = res; });
-      const logoSize = 130; doc.addImage(img, 'JPEG', pageWidth - rightMargin - logoSize, 40, logoSize, logoSize);
+        // Header: logo agrandi en haut à droite (les erreurs de chargement n'empêchent plus le PDF)
+        const logoSize = 190; // logo agrandi (était 130)
+        const img = await loadImageSafe('https://i.postimg.cc/85RsLkrb/LOGO.png');
+        if(img && img.naturalWidth > 0){
+          try{
+            doc.addImage(img, 'PNG', pageWidth - rightMargin - logoSize, 30, logoSize, logoSize);
+          }catch(e){
+            console.warn('Logo non inséré dans le PDF :', e);
+          }
+        }
 
-      // Company info top-right under logo
-      doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.text(' ', pageWidth - rightMargin - 10, 140, {align:'right'});
-      doc.setFontSize(10); doc.setFont('helvetica','normal');
-      doc.text('  ', pageWidth - rightMargin - 10, 154, {align:'right'});
-      doc.text('  ', pageWidth - rightMargin - 10, 168, {align:'right'});
-      doc.text(' ', pageWidth - rightMargin - 10, 182, {align:'right'});
-      
-    // Date en haut à gauche
-if(dataObj.dateDevis) {
-  const date = new Date(dataObj.dateDevis);
-  const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  doc.setFontSize(11);
-  doc.setFont('helvetica','normal');
-  doc.text('Date: ' + formattedDate, leftMargin, 70);
-}
+        // Date en haut à gauche
+        if(dataObj.dateDevis) {
+          const date = new Date(dataObj.dateDevis);
+          const formattedDate = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          doc.setFontSize(11);
+          doc.setFont('helvetica','normal');
+          doc.text('Date: ' + formattedDate, leftMargin, 70);
+        }
 
-// Titre (descendu pour créer l’espace après la date)
-doc.setFontSize(16);
-doc.setFont('helvetica','bold');
-doc.text('BON DE LIVRAISON ' + (dataObj.numDevis || ''), leftMargin, 105);
+        // Titre
+        doc.setFontSize(16);
+        doc.setFont('helvetica','bold');
+        doc.text('BON DE LIVRAISON ' + (dataObj.numDevis || ''), leftMargin, 105);
 
-// Informations client (espacé calmement)
-doc.setFontSize(14);
-doc.setFont('helvetica','normal');
-doc.text('Nom: ' + (dataObj.nom || ''), leftMargin, 130);
-doc.text('Matricule: ' + (dataObj.matricule || ''), leftMargin, 145);
+        // Informations client
+        doc.setFontSize(14);
+        doc.setFont('helvetica','normal');
+        doc.text('Nom: ' + (dataObj.nom || ''), leftMargin, 130);
+        doc.text('Matricule: ' + (dataObj.matricule || ''), leftMargin, 145);
 
-// Service (descendu pour ajouter un espace visuel)
-if(dataObj.service) {
-  doc.setFont('helvetica','bold');
-  doc.text('Service: ' + dataObj.service, leftMargin, 170);
-  doc.setFont('helvetica','normal');
-}
+        // Service
+        if(dataObj.service) {
+          doc.setFont('helvetica','bold');
+          doc.text('Service: ' + dataObj.service, leftMargin, 170);
+          doc.setFont('helvetica','normal');
+        }
 
+        // Items table
+        const startY = 240;
+        doc.autoTable({
+          startY,
+          head:[['Désignation','Quantité']],
+          body: dataObj.items.map(it=>[it.des, it.qty]),
+          styles:{fontSize:13},
+          theme:'striped',
+          headStyles:{fillColor:[15,74,200]},
+          margin:{left:leftMargin,right:rightMargin},
+          columnStyles: {
+            0: { cellWidth: 'auto' },
+            1: { cellWidth: 100, halign: 'center' }
+          }
+        });
 
-      // Items table
-      const startY = 240;
-      const columns = [
-        {header:'Désignation',dataKey:'des'},
-        {header:'Quantité',dataKey:'qty'}
-      ];
-      doc.autoTable({
-        startY, 
-        head:[columns.map(c=>c.header)], 
-        body: dataObj.items.map(it=>[it.des, it.qty]),
-        styles:{fontSize:13}, 
-        theme:'striped', 
-        headStyles:{fillColor:[15,74,200]}, 
-        margin:{left:leftMargin,right:rightMargin},
-       columnStyles: {
-  0: { cellWidth: 'auto' },
-  1: { cellWidth: 100, halign: 'center' }
-}
-      });
+        // Ligne de séparation
+        const finalY = doc.lastAutoTable.finalY + 20;
+        doc.setDrawColor(0);
+        doc.setLineWidth(0.5);
+        doc.line(leftMargin, finalY, pageWidth - rightMargin, finalY);
 
-      // Ligne de séparation
-      const finalY = doc.lastAutoTable.finalY + 20;
-      doc.setDrawColor(0);
-      doc.setLineWidth(0.5);
-      doc.line(leftMargin, finalY, pageWidth - rightMargin, finalY);
+        // Section de signature
+        const signatureY = finalY + 30;
 
-      // Section de signature
-      const signatureY = finalY + 30;
-      
-      // Client à gauche
-doc.setFontSize(12);
-      
-doc.text(' ', leftMargin, signatureY);
-doc.setFontSize(19);
-doc.text('  ' + (dataObj.nomClient || ''), leftMargin, signatureY + 20); // ← NOM AJOUTÉ ICI
-doc.text('', leftMargin, signatureY + 40);
-      // Garagiste à droite
-      doc.setFontSize(12);
-      doc.text('Le Garagiste', pageWidth - rightMargin - 50, signatureY, {align: 'right'});
-      doc.setFontSize(10);
-      doc.text('', pageWidth - rightMargin - 50, signatureY + 40, {align: 'right'});
-      
-      // Tampon sous le garagiste
-    // Tampon sous le garagiste
-const tamponImg = new Image();
-tamponImg.crossOrigin = 'anonymous';
-tamponImg.src = 'https://i.postimg.cc/PJhQ4P0f/LOCATION-VENTEDEVEHICULES-PIECESDERECHANGE-REPARATION-2.png';
+        // Client à gauche
+        doc.setFontSize(12);
+        doc.text(' ', leftMargin, signatureY);
+        doc.setFontSize(19);
+        doc.text('  ' + (dataObj.nomClient || ''), leftMargin, signatureY + 20);
+        doc.text('', leftMargin, signatureY + 40);
 
-await new Promise(resolve => {
-  tamponImg.onload = resolve;
-  tamponImg.onerror = resolve;
-});
+        // Garagiste à droite
+        doc.setFontSize(12);
+        doc.text('Le Garagiste', pageWidth - rightMargin - 50, signatureY, {align: 'right'});
+        doc.setFontSize(10);
+        doc.text('', pageWidth - rightMargin - 50, signatureY + 40, {align: 'right'});
 
-// On choisit juste la largeur qu'on veut (ex: 140)
-const newWidth = 170;
+        // Tampon sous le garagiste (même logique sûre que le logo)
+        const tamponImg = await loadImageSafe('https://i.postimg.cc/PJhQ4P0f/LOCATION-VENTEDEVEHICULES-PIECESDERECHANGE-REPARATION-2.png');
+        if(tamponImg && tamponImg.naturalWidth > 0){
+          try{
+            const newWidth = 170;
+            const ratio = tamponImg.naturalHeight / tamponImg.naturalWidth;
+            const newHeight = newWidth * ratio;
+            doc.addImage(
+              tamponImg,
+              'PNG',
+              pageWidth - rightMargin - newWidth - 10,
+              signatureY + 40,
+              newWidth,
+              newHeight
+            );
+          }catch(e){
+            console.warn('Tampon non inséré dans le PDF :', e);
+          }
+        }
 
-// La hauteur s'ajuste automatiquement selon l'image
-const ratio = tamponImg.height / tamponImg.width;
-const newHeight = newWidth * ratio;
+        // Infos entreprise en bas centré
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'italic');
+        const firstPart = "Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com";
+        const secondPart = "CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320";
+        doc.text(firstPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 40, { align: 'center' });
+        doc.text(secondPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 30, { align: 'center' });
 
-// Ajout dans le PDF (sans déformation)
-doc.addImage(
-  tamponImg,
-  'PNG',
-  pageWidth - rightMargin - newWidth - 10, // Position horizontale
-  signatureY + 40, // Position verticale
-  newWidth,
-  newHeight
-);
-
-
-
-
-      // Infos entreprise en bas centré
-      const footerText = "Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com/CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320";
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'italic');
-      
-      // Diviser le texte en deux parties
-      const firstPart = "Tel: +221 70 878 19 89/77 470 47 42/Email: etsiniasseetfreres@yahoo.com";
-      const secondPart = "CPTE: CORISBANK SN213 01018 005058724101 42/NINEA: 004119964/RCCM: SN THS 2009.A.2320";
-      
-      doc.text(firstPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 40, { align: 'center' });
-      doc.text(secondPart, pageWidth / 2, doc.internal.pageSize.getHeight() - 30, { align: 'center' });
-
-      // Save / open
-      doc.save((dataObj.numDevis||'bon-de-livraison') + '.pdf');
+        // Save / open
+        doc.save((dataObj.numDevis||'bon-de-livraison') + '.pdf');
+      }catch(err){
+        console.error('Erreur génération PDF :', err);
+        alert("Le PDF n'a pas pu être généré. Détail technique dans la console (F12).");
+      }
     }
 
     // Build data and call generate
@@ -586,9 +605,9 @@ doc.addImage(
   const numDevis = $('numDevis').value || '';
   const dateDevis = $('dateDevis').value;
   const service = $('service').value;
-  const nomClient = $('nomClient').value; // ← AJOUTEZ CETTE LIGNE
+  const nomClient = $('nomClient').value;
   const items = [...tbody.querySelectorAll('tr')].map(r=>({des:r.querySelector('.des').value, qty:Number(r.querySelector('.qty').value)||0})).filter(i=>i.des||i.qty);
-  return {nom,matricule,numDevis,dateDevis,service,nomClient,items}; // ← AJOUTEZ nomClient ici
+  return {nom,matricule,numDevis,dateDevis,service,nomClient,items};
 }
 
     // Save devis to localStorage list
@@ -632,18 +651,30 @@ doc.addImage(
     document.getElementById('saveDevis').addEventListener('click', ()=>{
       const data = collectForm();
       const list = loadDevisList();
-      // if same num exists replace
       const exist = list.findIndex(x=>x.numDevis===data.numDevis);
-      if(exist>=0){ if(!confirm('Numéro de bon de livraison déjà existant — remplacer ?')) return; list[exist]=data; }
-      else list.unshift(data);
-      saveDevisList(list);
-      alert('Bon de livraison sauvegardé ✔️');
+      if(exist>=0){
+        // On modifie un bon existant : on ne consomme pas de nouveau numéro
+        if(!confirm('Numéro de bon de livraison déjà existant — remplacer ?')) return;
+        list[exist]=data;
+        saveDevisList(list);
+        alert('Bon de livraison sauvegardé ✔️');
+      } else {
+        // Nouveau bon : on consomme le numéro et on prépare le suivant
+        list.unshift(data);
+        saveDevisList(list);
+        commitNextNum();
+        $('numDevis').value = peekNextNum();
+        alert('Bon de livraison sauvegardé ✔️');
+      }
     });
     
     // Initialiser la date avec la date du jour
     const today = new Date();
     const formattedDate = today.toISOString().substr(0, 10);
     $('dateDevis').value = formattedDate;
+
+    // Initialiser le numéro automatique
+    $('numDevis').value = peekNextNum();
     
     // init
     addRow(); renderDevisList();
