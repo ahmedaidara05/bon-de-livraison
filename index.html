@@ -34,6 +34,8 @@
   .list-item .actions{display:flex;gap:6px;flex-shrink:0}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .number-badge{padding:10px;background:linear-gradient(90deg,var(--blue1),var(--blue2));color:#fff;border-radius:8px;font-weight:700;text-align:center}
+  .lot-block{padding-top:6px;border-top:1px dashed #dbeafe}
+  .lot-block:first-child{border-top:0}
   .total-line{font-weight:700;text-align:right;margin-top:10px}
   @media(max-width:700px){.grid2{grid-template-columns:1fr} .card{grid-template-columns:1fr !important}}
 </style>
@@ -44,6 +46,7 @@
   <button class="tab-btn active" data-target="panel-bl" type="button">📦 Bon de livraison</button>
   <button class="tab-btn" data-target="panel-devis" type="button">🧾 Devis</button>
   <button class="tab-btn" data-target="panel-facture" type="button">🧮 Facture</button>
+  <button class="tab-btn" data-target="panel-offre" type="button">📋 Offre</button>
   <span class="status" id="fbStatus">Connexion à Firebase…</span>
 </nav>
 
@@ -179,6 +182,39 @@
   <div class="card" style="margin-top:18px">
     <h3 style="margin-top:0">Factures</h3>
     <div id="fa-list"></div>
+  </div>
+</section>
+
+<!-- ============ PANEL OFFRE ============ -->
+<section id="panel-offre" class="panel">
+  <h1 class="page-title">Offre commerciale — ETS NIASS & FRÈRE</h1>
+  <div class="card">
+    <div class="grid2">
+      <div><label>Numéro (automatique)</label><input type="text" id="of-num" readonly></div>
+      <div><label>Date</label><input type="date" id="of-date"></div>
+    </div>
+    <div style="margin-top:10px"><label>Destinataire (optionnel)</label><input type="text" id="of-client" placeholder="Nom du client ou de l'entreprise"></div>
+    <div style="margin-top:10px"><label>Objet de l'offre</label><input type="text" id="of-objet" placeholder="Ex: Fournitures de pneumatiques et batteries automobiles"></div>
+
+    <div style="margin-top:14px;display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+      <div style="min-width:160px"><label>Taux TVA (%)</label><input type="number" id="of-tva" value="18" min="0" max="100" step="0.1"></div>
+      <button type="button" class="btn btn-ghost" id="of-calcTva">🧮 Calculer les prix TTC</button>
+    </div>
+
+    <div id="of-lots"></div>
+    <div style="margin-top:12px"><button type="button" class="btn btn-ghost" id="of-addLot">➕ Ajouter un lot</button></div>
+
+    <div class="total-line">Total général TTC: <span id="of-grandtotal">0</span> FCFA</div>
+
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" id="of-generatePdf">Générer PDF</button>
+      <button type="button" class="btn" id="of-save">Sauvegarder</button>
+      <button type="button" class="btn" id="of-clear">Nouvelle offre</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px">
+    <h3 style="margin-top:0">Offres</h3>
+    <div id="of-list"></div>
   </div>
 </section>
 
@@ -949,6 +985,282 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
   $('fa-date').value = new Date().toISOString().substr(0,10);
   updateFaTvaUI();
   addRow();
+  refreshNumber();
+})();
+
+/* ================================================================
+   OFFRE
+   ================================================================ */
+(function(){
+  let editingId = null;
+
+  function fmtOf(n){ return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); }
+
+  function updateLotIndices(){
+    document.querySelectorAll('#of-lots .lot-block').forEach((block, idx)=>{
+      block.querySelector('.lot-index').textContent = `LOT ${idx+1} :`;
+    });
+  }
+
+  function recalcGrandTotal(){
+    let total=0;
+    document.querySelectorAll('#of-lots .of-lot-tbody tr').forEach(tr=>{
+      const qty = Number(tr.querySelector('.of-qty').value)||0;
+      const ttc = Number(tr.querySelector('.of-ttc').value)||0;
+      total += qty*ttc;
+    });
+    $('of-grandtotal').textContent = fmtOf(total);
+    return Math.round(total);
+  }
+
+  function addRowToLot(tbody, item={des:'',marque:'',qty:1,ht:0,ttc:0}){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="of-des" type="text" value="${escapeHtml(item.des)}"></td>
+      <td><input class="of-marque" type="text" value="${escapeHtml(item.marque)}"></td>
+      <td><input class="of-qty" type="number" min="0" value="${item.qty}"></td>
+      <td><input class="of-ht" type="number" min="0" value="${item.ht}"></td>
+      <td><input class="of-ttc" type="number" min="0" value="${item.ttc}"></td>
+      <td><button type="button" class="btn btn-ghost of-delRow">X</button></td>`;
+    tbody.appendChild(tr);
+    tr.querySelector('.of-delRow').addEventListener('click', ()=>{ tr.remove(); recalcGrandTotal(); });
+    tr.querySelectorAll('.of-qty,.of-ttc').forEach(inp=>inp.addEventListener('input', recalcGrandTotal));
+  }
+
+  function addLot(data={name:'',items:[]}){
+    const block = document.createElement('div');
+    block.className = 'lot-block';
+    block.innerHTML = `
+      <div style="display:flex;gap:10px;align-items:center;margin:14px 0 6px;flex-wrap:wrap">
+        <strong class="lot-index">LOT :</strong>
+        <input type="text" class="of-lot-name" placeholder="Nom du lot (ex: PNEUMATIQUES)" style="flex:1;min-width:160px" value="${escapeHtml(data.name)}">
+        <button type="button" class="btn btn-ghost of-removeLot">🗑️ Supprimer le lot</button>
+      </div>
+      <table>
+        <thead><tr><th>Désignation</th><th>Marque</th><th>Quantité</th><th>Prix HT</th><th>Prix TTC</th><th></th></tr></thead>
+        <tbody class="of-lot-tbody"></tbody>
+      </table>
+      <div style="margin-top:6px"><button type="button" class="btn btn-ghost of-addRow">➕ Ajouter un article</button></div>`;
+    $('of-lots').appendChild(block);
+    const tbody = block.querySelector('.of-lot-tbody');
+    const items = data.items && data.items.length ? data.items : [{des:'',marque:'',qty:1,ht:0,ttc:0}];
+    items.forEach(it=>addRowToLot(tbody, it));
+    block.querySelector('.of-addRow').addEventListener('click', ()=>addRowToLot(tbody));
+    block.querySelector('.of-removeLot').addEventListener('click', ()=>{
+      if(document.querySelectorAll('#of-lots .lot-block').length<=1){
+        alert("Il doit rester au moins un lot.");
+        return;
+      }
+      block.remove();
+      updateLotIndices();
+      recalcGrandTotal();
+    });
+    updateLotIndices();
+    recalcGrandTotal();
+  }
+  $('of-addLot').addEventListener('click', ()=>addLot());
+
+  $('of-calcTva').addEventListener('click', ()=>{
+    const rate = parseFloat($('of-tva').value)||0;
+    document.querySelectorAll('#of-lots .of-lot-tbody tr').forEach(tr=>{
+      const ht = Number(tr.querySelector('.of-ht').value)||0;
+      if(ht>0){
+        tr.querySelector('.of-ttc').value = Math.round(ht*(1+rate/100));
+      }
+    });
+    recalcGrandTotal();
+  });
+
+  async function refreshNumber(){
+    const year = new Date().getFullYear();
+    const n = await peekNumber('offre_'+year);
+    $('of-num').value = `OFFRE-${year}-${String(n).padStart(4,'0')}`;
+  }
+
+  function collect(){
+    const lots = [...document.querySelectorAll('#of-lots .lot-block')].map(block=>({
+      name: block.querySelector('.of-lot-name').value,
+      items: [...block.querySelectorAll('.of-lot-tbody tr')].map(r=>({
+        des: r.querySelector('.of-des').value,
+        marque: r.querySelector('.of-marque').value,
+        qty: Number(r.querySelector('.of-qty').value)||0,
+        ht: Number(r.querySelector('.of-ht').value)||0,
+        ttc: Number(r.querySelector('.of-ttc').value)||0
+      })).filter(it=>it.des || it.marque || it.qty || it.ht || it.ttc)
+    })).filter(l=>l.items.length>0 || l.name);
+    return {
+      numOffre: $('of-num').value,
+      date: $('of-date').value,
+      client: $('of-client').value,
+      objet: $('of-objet').value,
+      tvaRate: parseFloat($('of-tva').value)||0,
+      lots,
+      grandTotal: recalcGrandTotal()
+    };
+  }
+
+  function populate(d){
+    $('of-num').value = d.numOffre || '';
+    if(d.date) $('of-date').value = d.date;
+    $('of-client').value = d.client || '';
+    $('of-objet').value = d.objet || '';
+    $('of-tva').value = d.tvaRate ?? 18;
+    $('of-lots').innerHTML = '';
+    (d.lots && d.lots.length ? d.lots : [{name:'',items:[]}]).forEach(l=>addLot(l));
+    recalcGrandTotal();
+  }
+
+  async function generatePDF(order){
+    try{
+      const { jsPDF } = window.jspdf;
+      const doc_ = new jsPDF({unit:'pt',format:'a4'});
+      const leftMargin=40, rightMargin=40, pageWidth=doc_.internal.pageSize.getWidth();
+
+      // Bandeau d'en-tête (au lieu d'un logo isolé sur fond vide)
+      const bandHeight = 95;
+      doc_.setFillColor(15,74,200);
+      doc_.rect(0,0,pageWidth,bandHeight,'F');
+
+      const img = await loadImageSafe('https://i.postimg.cc/85RsLkrb/LOGO.png');
+      if(img && img.naturalWidth>0){
+        try{ doc_.addImage(img,'PNG', leftMargin, 15, 65, 65); }catch(e){ console.warn(e); }
+      }
+
+      doc_.setTextColor(255,255,255);
+      doc_.setFontSize(18); doc_.setFont('helvetica','bold');
+      doc_.text('ETS NIASS & FRÈRE', leftMargin+80, 42);
+      doc_.setFontSize(9); doc_.setFont('helvetica','normal');
+      doc_.text('Réparation - Pièces détachées - Vente & Location de véhicules', leftMargin+80, 58);
+
+      doc_.setFontSize(15); doc_.setFont('helvetica','bold');
+      doc_.text('OFFRE COMMERCIALE', pageWidth-rightMargin, 38, {align:'right'});
+      doc_.setFontSize(10); doc_.setFont('helvetica','normal');
+      doc_.text('N°: '+(order.numOffre||''), pageWidth-rightMargin, 56, {align:'right'});
+      if(order.date){
+        const d = new Date(order.date);
+        doc_.text('Date: '+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}), pageWidth-rightMargin, 72, {align:'right'});
+      }
+
+      doc_.setTextColor(0,0,0);
+      let y = bandHeight + 35;
+
+      if(order.client){
+        doc_.setFontSize(11); doc_.setFont('helvetica','normal');
+        doc_.text("À l'attention de : "+order.client, leftMargin, y);
+        y += 20;
+      }
+      if(order.objet){
+        doc_.setFontSize(12); doc_.setFont('helvetica','bold');
+        const label = 'OFFRE COMMERCIALE : ';
+        doc_.text(label, leftMargin, y);
+        const labelWidth = doc_.getTextWidth(label);
+        doc_.setFont('helvetica','normal');
+        const splitObjet = doc_.splitTextToSize(order.objet, pageWidth-leftMargin-rightMargin-labelWidth);
+        doc_.text(splitObjet, leftMargin+labelWidth, y);
+        y += 16*splitObjet.length + 14;
+      } else {
+        y += 6;
+      }
+
+      (order.lots||[]).forEach((lot, idx)=>{
+        if(y > 680){ doc_.addPage(); y = 40; }
+        doc_.setFontSize(12); doc_.setFont('helvetica','bold'); doc_.setTextColor(15,74,200);
+        doc_.text(`LOT ${idx+1} : ${(lot.name||'').toUpperCase()}`, leftMargin, y);
+        doc_.setTextColor(0,0,0);
+        y += 10;
+
+        doc_.autoTable({
+          startY: y,
+          head:[['Désignation','Marque','Quantité','Prix HT','Prix TTC']],
+          body: (lot.items||[]).map(it=>[
+            it.des, it.marque, it.qty,
+            fmtOf(it.ht)+' FCFA',
+            fmtOf(it.ttc)+' FCFA'
+          ]),
+          styles:{fontSize:10}, theme:'striped', headStyles:{fillColor:[15,74,200]},
+          margin:{left:leftMargin,right:rightMargin}
+        });
+        y = doc_.lastAutoTable.finalY + 25;
+      });
+
+      doc_.setDrawColor(15,74,200); doc_.setLineWidth(1);
+      doc_.line(leftMargin, y, pageWidth-rightMargin, y);
+      y += 22;
+      doc_.setFontSize(13); doc_.setFont('helvetica','bold');
+      doc_.text('Total général TTC : '+fmtOf(order.grandTotal||0)+' FCFA', pageWidth-rightMargin, y, {align:'right'});
+
+      const pageHeight = doc_.internal.pageSize.getHeight();
+      doc_.setFontSize(8); doc_.setFont('helvetica','italic');
+      doc_.text("Route de Sangalkam près de la station de pesage - Sénégal", pageWidth/2, pageHeight-35, {align:'center'});
+      doc_.text("Tel: +221 70 878 19 89 / 77 470 47 42 - Email: etsiniasseetfreres@yahoo.com", pageWidth/2, pageHeight-25, {align:'center'});
+      doc_.text("CPTE: CORISBANK SN213 01018 005058724101 42 - NINEA: 004119964 - RCCM: SN THS 2009.A.2320", pageWidth/2, pageHeight-15, {align:'center'});
+
+      doc_.save((order.numOffre||'offre')+'.pdf');
+    }catch(err){
+      console.error(err);
+      alert("Le PDF n'a pas pu être généré. Détail dans la console (F12).");
+    }
+  }
+
+  $('of-generatePdf').addEventListener('click', async ()=>{
+    await generatePDF(collect());
+  });
+
+  $('of-save').addEventListener('click', async ()=>{
+    const data = collect();
+    try{
+      if(editingId){
+        await updateDoc(doc(db,'offres',editingId), data);
+      } else {
+        const year = new Date().getFullYear();
+        const n = await commitNumber('offre_'+year);
+        data.numOffre = `OFFRE-${year}-${String(n).padStart(4,'0')}`;
+        $('of-num').value = data.numOffre;
+        await addDoc(collection(db,'offres'), {...data, createdAt: Date.now()});
+        editingId = null;
+        await refreshNumber();
+      }
+      alert('Offre sauvegardée ✔️');
+    }catch(e){
+      console.error(e);
+      alert("Erreur de sauvegarde Firebase : " + e.message);
+    }
+  });
+
+  $('of-clear').addEventListener('click', async ()=>{
+    if(!confirm('Nouvelle offre ? Les champs seront réinitialisés.')) return;
+    $('of-client').value=''; $('of-objet').value=''; $('of-tva').value = 18;
+    $('of-lots').innerHTML='';
+    addLot();
+    $('of-date').value = new Date().toISOString().substr(0,10);
+    editingId = null;
+    await refreshNumber();
+    recalcGrandTotal();
+  });
+
+  onSnapshot(query(collection(db,'offres'), orderBy('createdAt','desc')), (snap)=>{
+    const list = $('of-list'); list.innerHTML='';
+    if(snap.empty){ list.innerHTML='<div class="muted">Aucune offre enregistrée.</div>'; return; }
+    snap.forEach(docSnap=>{
+      const d = docSnap.data(); const id = docSnap.id;
+      const el = document.createElement('div'); el.className='list-item';
+      el.innerHTML = `<div><strong>${escapeHtml(d.numOffre)}</strong> — ${escapeHtml(d.objet||d.client||'—')}<div class="small muted">${fmtOf(d.grandTotal||0)} FCFA</div></div>
+        <div class="actions">
+          <button type="button" class="btn btn-ghost" data-a="edit">✏️</button>
+          <button type="button" class="btn btn-ghost" data-a="pdf">📄</button>
+          <button type="button" class="btn btn-ghost" data-a="del">🗑️</button>
+        </div>`;
+      el.querySelector('[data-a="edit"]').addEventListener('click', ()=>{ editingId=id; populate(d); });
+      el.querySelector('[data-a="pdf"]').addEventListener('click', ()=>generatePDF(d));
+      el.querySelector('[data-a="del"]').addEventListener('click', async ()=>{
+        if(confirm('Supprimer cette offre ?')) await deleteDoc(doc(db,'offres',id));
+      });
+      list.appendChild(el);
+    });
+  }, (err)=>{ console.error(err); $('of-list').innerHTML='<div class="muted">Erreur de connexion Firebase.</div>'; });
+
+  $('of-date').value = new Date().toISOString().substr(0,10);
+  addLot();
   refreshNumber();
 })();
 </script>
