@@ -625,9 +625,9 @@
         const el = document.createElement('div'); el.className='devis-item';
         el.innerHTML = `<div><strong>${escapeHtml(d.numDevis)}</strong> — ${escapeHtml(d.nom||'—')}</div>
           <div class='actions'>
-            <button class='btn' data-action='edit' data-idx='${idx}'>✏️</button>
-            <button class='btn' data-action='pdf' data-idx='${idx}'>📄</button>
-            <button class='btn' data-action='delete' data-idx='${idx}'>🗑️</button>
+            <button type="button" class='btn' data-action='edit' data-idx='${idx}'>✏️</button>
+            <button type="button" class='btn' data-action='pdf' data-idx='${idx}'>📄</button>
+            <button type="button" class='btn' data-action='delete' data-idx='${idx}'>🗑️</button>
           </div>`;
         container.appendChild(el);
       });
